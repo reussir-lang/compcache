@@ -32,7 +32,7 @@ fn next_random(seed: &mut u64) -> u64 {
     *seed
 }
 fn exercise<I: InMemoryCache, D: ExtraOnDiskData>(
-    store: Store<I, D>,
+    store: &Store<I, D>,
     id: u64,
     seconds: u64,
 ) -> Report {
@@ -86,7 +86,7 @@ fn exercise<I: InMemoryCache, D: ExtraOnDiskData>(
 }
 
 #[test]
-#[ignore]
+#[ignore = "invoked as a subprocess by the six-process stress test"]
 fn stress_worker() {
     let root = std::path::PathBuf::from(
         std::env::var_os("COMPCACHE_STRESS_ROOT").expect("parent supplies root"),
@@ -107,14 +107,14 @@ fn stress_worker() {
             .config(cfg)
             .open()
             .unwrap();
-        exercise(store, id, seconds)
+        exercise(&store, id, seconds)
     } else {
         let store = StoreBuilder::<Bypass, ManagedDirectory>::new()
             .path(&root)
             .config(cfg)
             .open()
             .unwrap();
-        exercise(store, id, seconds)
+        exercise(&store, id, seconds)
     };
     std::fs::write(
         root.join(format!("stress-{id}.json")),

@@ -30,3 +30,10 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 [[bench]]
 name = "cache"
 harness = false
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+# Keep the project's non-const API style and explicit internal visibility.
+missing_const_for_fn = "allow"
+redundant_pub_crate = "allow"

@@ -49,11 +49,7 @@ fn size_uses_metadata_plus_sqlite_lengths_without_double_counting_blobs() {
     drop(store.get_or_insert_runtime(runtime, &produce).unwrap());
     let sql_size: u64 = ["cache.db", "cache.db-wal", "cache.db-shm"]
         .iter()
-        .map(|name| {
-            std::fs::metadata(root.path().join(name))
-                .map(|m| m.len())
-                .unwrap_or(0)
-        })
+        .map(|name| std::fs::metadata(root.path().join(name)).map_or(0, |m| m.len()))
         .sum();
     assert_eq!(
         store.accounted_size().unwrap(),
@@ -222,7 +218,10 @@ fn runtime_location_is_resolved_from_sqlite_metadata() {
         )
         .unwrap();
     let lease = store.get_runtime(&key).unwrap().unwrap();
-    assert_eq!(lease.path(), std::fs::canonicalize(&relocated).unwrap());
+    assert_eq!(
+        std::fs::canonicalize(lease.path()).unwrap(),
+        std::fs::canonicalize(&relocated).unwrap()
+    );
     assert_eq!(
         std::fs::read(lease.path().join("lib/runtime.so")).unwrap(),
         b"complete runtime"

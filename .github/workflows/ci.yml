@@ -7,6 +7,11 @@ on:
   pull_request:
     paths-ignore: ["**/*.md", "agentic-plan/**"]
   workflow_dispatch:
+    inputs:
+      stress:
+        description: Run the ten-second native multiprocess stress test
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -41,7 +46,6 @@ jobs:
       - name: Check all targets
         run: cargo check --locked --all-targets
       - name: Clippy
-        if: runner.os == 'Linux'
         run: cargo clippy --locked --all-targets -- -D warnings
       - name: Unit tests without the external Nickel CLI
         run: cargo test --locked --lib -- --skip builder::tests::application_defaults_config_loading
@@ -51,3 +55,8 @@ jobs:
         run: cargo test --locked --doc
       - name: Storage and process recovery tests
         run: cargo test --locked --test store --test maintenance --test schema --test process --test platform
+      - name: Native multiprocess stress
+        if: github.event_name == 'workflow_dispatch' && inputs.stress
+        env:
+          COMPCACHE_STRESS_SECONDS: "10"
+        run: cargo test --locked --test stress

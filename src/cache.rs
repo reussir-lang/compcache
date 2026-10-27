@@ -70,9 +70,18 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
         &self.root
     }
     /// Status is observable even while a builder/pruner holds its exclusive lease.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if metadata cannot be read or contains an unknown state.
     pub fn status(&self, kind: EntryKind, key: &Key) -> Result<Option<EntryStatus>> {
         self.metadata.status(kind as i64, key)
     }
+    /// Read a blob as shared immutable bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the key lease or SQLite lookup/access-time update fails.
     pub fn get_blob(&self, key: &Key) -> Result<Option<Arc<[u8]>>> {
         let now = now_secs()?;
         if let Some(entry) = self.memory.as_ref().and_then(|m| m.get(key)) {
@@ -99,6 +108,10 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
     }
     /// At most one producer runs for a key at a time, including across processes.
     /// A failed or crashed producer can be retried; recipes must be deterministic.
+    ///
+    /// # Errors
+    ///
+    /// Returns producer, locking, SQLite or size errors. A maintenance error means the payload was stored but subsequent pruning failed.
     pub fn get_or_insert_blob(
         &self,
         key: Key,
@@ -134,6 +147,10 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
     }
     /// Logical runtime payloads plus DB/WAL/SHM lengths, without walking payload trees.
     /// Blob bytes are included in SQLite files, never counted twice.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for unreadable metadata/files, invalid recorded sizes or overflow.
     pub fn accounted_size(&self) -> Result<u64> {
         let mut bytes = self.metadata.directory_bytes()?;
         for name in ["cache.db", "cache.db-wal", "cache.db-shm"] {
@@ -148,6 +165,10 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
     }
     /// Flush WAL frames when readers allow it. SQLite can reuse freed DB pages;
     /// pruning is not a promise that the physical DB file shrinks immediately.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if SQLite cannot perform the checkpoint.
     pub fn checkpoint(&self) -> Result<bool> {
         let completed = self.metadata.checkpoint()?;
         info!(completed, "cache WAL checkpoint requested");

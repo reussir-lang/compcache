@@ -4,6 +4,7 @@ use compcache::{
     Bypass, EntryKind, EntryStatus, ExtraOnDiskData, Key, ManagedDirectory, Result, StoreBuilder,
 };
 use std::{
+    io::Write,
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     time::{Duration, Instant},
@@ -63,7 +64,7 @@ impl ExtraOnDiskData for InterruptedRemoval {
 
 // Invoked only as a subprocess; parent tests kill it at a durable boundary.
 #[test]
-#[ignore]
+#[ignore = "invoked as a subprocess by the crash and deduplication tests"]
 fn process_worker() {
     let root = PathBuf::from(std::env::var_os("COMPCACHE_PROCESS_ROOT").expect("parent sets root"));
     match std::env::var("COMPCACHE_PROCESS_MODE").unwrap().as_str() {
@@ -99,7 +100,6 @@ fn process_worker() {
                         .append(true)
                         .open(root.join("producer-calls"))
                         .unwrap();
-                    use std::io::Write;
                     std::fs::OpenOptions::new()
                         .append(true)
                         .open(root.join("producer-calls"))

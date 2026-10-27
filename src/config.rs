@@ -63,6 +63,10 @@ impl Default for DiskConfig {
 impl Config {
     /// Evaluate Nickel once during startup; the hot path never starts a process.
     /// Requires the `nickel` executable from the development shell or deployment.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if Nickel cannot run, evaluation or decoding fails, or a configuration value is invalid.
     pub fn from_nickel(path: impl AsRef<Path>) -> Result<Self> {
         Self::from_nickel_with_defaults(path, Self::default())
     }
@@ -88,6 +92,11 @@ impl Config {
         config.validate()?;
         Ok(config)
     }
+    /// Check memory, pruning, SQLite and retry settings.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first invalid configuration field as `Error::Config`.
     pub fn validate(&self) -> Result<()> {
         let m = &self.memory;
         let retry = &self.disk.io_backoff;
@@ -129,17 +138,17 @@ impl Config {
             ),
             (
                 "disk.prune_trigger_bytes",
-                self.disk.prune_trigger_bytes <= i64::MAX as u64,
+                i64::try_from(self.disk.prune_trigger_bytes).is_ok(),
                 "exceeds SQLite integer range",
             ),
             (
                 "disk.prune_older_than_secs",
-                self.disk.prune_older_than_secs <= i64::MAX as u64,
+                i64::try_from(self.disk.prune_older_than_secs).is_ok(),
                 "exceeds timestamp range",
             ),
             (
                 "disk.sqlite_cache_kib",
-                self.disk.sqlite_cache_kib > 0 && self.disk.sqlite_cache_kib <= i32::MAX as u32,
+                self.disk.sqlite_cache_kib > 0 && i32::try_from(self.disk.sqlite_cache_kib).is_ok(),
                 "must fit a positive i32",
             ),
         ] {

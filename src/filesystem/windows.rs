@@ -56,11 +56,30 @@ pub(super) fn ensure_local(path: &Path) -> Result<()> {
     }
     let end = name.iter().position(|&c| c == 0).unwrap_or(name.len());
     let name = String::from_utf16_lossy(&name[..end]);
-    if !matches!(drive, DRIVE_FIXED | DRIVE_REMOVABLE | DRIVE_RAMDISK) || name != "NTFS" {
+    if !is_local_volume(drive, &name) {
         return Err(Error::FileSystemName {
             path: path.into(),
             name: format!("{name} (drive type {drive})"),
         });
     }
     Ok(())
+}
+
+fn is_local_volume(drive: u32, name: &str) -> bool {
+    matches!(drive, DRIVE_FIXED | DRIVE_REMOVABLE | DRIVE_RAMDISK) && name == "NTFS"
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use windows_sys::Win32::System::WindowsProgramming::DRIVE_REMOTE;
+
+    #[test]
+    fn rejects_remote_and_unvalidated_filesystems() {
+        assert!(is_local_volume(DRIVE_FIXED, "NTFS"));
+        assert!(!is_local_volume(DRIVE_REMOTE, "NTFS"));
+        assert!(!is_local_volume(DRIVE_FIXED, "FAT32"));
+        assert!(!is_local_volume(DRIVE_FIXED, "ReFS"));
+        assert!(!is_local_volume(0, "NTFS"));
+    }
 }

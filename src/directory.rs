@@ -10,24 +10,51 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-/// Optional managed payload backend. All methods are called under the key lease.
+/// Optional managed payload backend.
+///
+/// All methods are called under the key lease.
+///
 /// Paths and layout must be stable across processes and restarts. `prepare` must
 /// not destroy a Ready entry. `remove` must be idempotent and sync the parent.
 /// All data must be on the validated local filesystem rooted at `root`.
 pub trait ExtraOnDiskData: Send + Sync {
     /// `None` selects a backend without external payloads.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the backend cannot initialize its configured storage.
     fn from_config(root: PathBuf, config: &crate::DiskConfig) -> Result<Option<Self>>
     where
         Self: Sized;
     fn root(&self) -> &Path;
     fn path(&self, key: &Key) -> PathBuf;
+    /// Prepare an empty directory while holding the key exclusively.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if an empty build directory cannot be prepared and synced.
     fn prepare(&self, key: &Key) -> Result<()>;
+    /// Remove output idempotently and sync its parent.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if deletion or parent syncing fails; a later call must be able to resume.
     fn remove(&self, key: &Key) -> Result<()>;
+    /// Inspect whether published output is present.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the directory cannot be inspected or the path has an invalid type.
     fn exists(&self, key: &Key) -> Result<bool>;
 }
 /// A producer must complete all writes, sync files and directories, and report
 /// the total logical bytes it produced. Never modify output after returning.
 pub trait DirectoryProducer {
+    /// Produce complete, synced output and return its logical byte count.
+    ///
+    /// # Errors
+    ///
+    /// Returns a production or durability error. The cache will attempt to remove partial output.
     fn produce(&self, directory: &Path) -> Result<u64>;
 }
 impl<F: Fn(&Path) -> Result<u64>> DirectoryProducer for F {
@@ -41,9 +68,15 @@ pub struct ManagedDirectory {
     backoff: crate::Backoff,
 }
 impl ManagedDirectory {
+    /// Create and canonicalize the managed storage root.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the root cannot be created or is on unsupported storage.
     pub fn new(root: impl Into<PathBuf>) -> Result<Self> {
         let root = root.into();
         make_directory(&root)?;
+        let root = fs::canonicalize(&root).at("resolve managed directory root", &root)?;
         Ok(Self {
             root,
             backoff: crate::Backoff::default(),
@@ -100,6 +133,7 @@ pub struct RuntimeLease {
     pub(crate) _lock: File,
 }
 impl RuntimeLease {
+    #[must_use]
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -107,6 +141,7 @@ impl RuntimeLease {
 
 /// Count and sync produced files without walking the tree. This helper supports
 /// streamed compiler output; external tools may instead use the producer contract.
+#[must_use = "finish the writer to sync its directories and obtain the byte count"]
 pub struct ArtifactWriter {
     root: PathBuf,
     directories: BTreeSet<PathBuf>,
@@ -127,9 +162,19 @@ impl ArtifactWriter {
         self.backoff = backoff;
         self
     }
+    /// Create a new artifact from bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid or existing path, failed writes/syncs, or size overflow.
     pub fn write_file(&mut self, relative: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {
         self.copy_file(relative, &mut &*bytes)
     }
+    /// Stream an input into a new artifact and sync it.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid or existing path, failed reads/writes/syncs, or size overflow.
     pub fn copy_file(&mut self, relative: impl AsRef<Path>, input: &mut impl Read) -> Result<()> {
         let relative = relative.as_ref();
         if relative.as_os_str().is_empty()
@@ -140,7 +185,9 @@ impl ArtifactWriter {
             return Err(Error::ArtifactPath(relative.to_path_buf()));
         }
         let path = self.root.join(relative);
-        let parent = path.parent().expect("joined path has a parent");
+        let parent = path
+            .parent()
+            .ok_or_else(|| Error::ArtifactPath(relative.to_path_buf()))?;
         self.backoff.run("create artifact parents", parent, || {
             fs::create_dir_all(parent)
         })?;
@@ -150,7 +197,8 @@ impl ArtifactWriter {
             if dir == self.root {
                 break;
             }
-            dir = dir.parent().expect("nested directory has parent");
+            let Some(parent) = dir.parent() else { break };
+            dir = parent;
         }
         let mut file = self.backoff.run("create artifact file", &path, || {
             OpenOptions::new().write(true).create_new(true).open(&path)
@@ -162,6 +210,11 @@ impl ArtifactWriter {
         self.bytes = self.bytes.checked_add(bytes).ok_or(Error::SizeOverflow)?;
         Ok(())
     }
+    /// Sync produced directories and return the total bytes written.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if a produced directory cannot be synced.
     pub fn finish(self) -> Result<u64> {
         for directory in self.directories.iter().rev() {
             sync_directory(directory)?;
@@ -172,6 +225,10 @@ impl ArtifactWriter {
 
 /// A type-level choice to omit external payloads completely.
 pub enum NoExtraData {}
+#[allow(
+    clippy::uninhabited_references,
+    reason = "NoExtraData has no instances; these trait methods are unreachable"
+)]
 impl ExtraOnDiskData for NoExtraData {
     fn from_config(_: PathBuf, _config: &crate::DiskConfig) -> Result<Option<Self>> {
         Ok(None)

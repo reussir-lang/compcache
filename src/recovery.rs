@@ -10,6 +10,10 @@ pub struct RecoveryReport {
 impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
     /// Recovery never waits on live producers/readers. Call again after a crash
     /// if this handle outlives another process; opening a new handle also recovers.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if metadata inspection or interrupted-work cleanup fails. Live key leases are skipped.
     pub fn recover(&self) -> Result<RecoveryReport> {
         let mut report = RecoveryReport::default();
         for row in self.metadata.directories()? {

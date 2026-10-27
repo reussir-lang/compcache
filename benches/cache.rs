@@ -15,9 +15,13 @@ fn config() -> Config {
     config.disk.prune_on_write = false;
     config
 }
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "Criterion's finish consumes and drops its benchmark group"
+)]
 fn blobs(c: &mut Criterion) {
     let mut group = c.benchmark_group("warm_blob");
-    for size in [64usize, 4096, 262144] {
+    for size in [64usize, 4096, 262_144] {
         let root = tempfile::tempdir().unwrap();
         let store: Store = StoreBuilder::new()
             .path(root.path())
@@ -40,7 +44,7 @@ fn blobs(c: &mut Criterion) {
     let key = Key::from_parts("bench", b"sqlite");
     store.get_or_insert_blob(key, || Ok(vec![7; 4096])).unwrap();
     c.bench_function("sqlite_hit_4k", |b| {
-        b.iter(|| black_box(store.get_blob(&key).unwrap()))
+        b.iter(|| black_box(store.get_blob(&key).unwrap()));
     });
     let mut sequence = 0u64;
     c.bench_function("sqlite_insert_4k", |b| {
@@ -48,7 +52,7 @@ fn blobs(c: &mut Criterion) {
             sequence += 1;
             let key = Key::from_parts("bench", &sequence.to_le_bytes());
             black_box(store.get_or_insert_blob(key, || Ok(vec![7; 4096])).unwrap());
-        })
+        });
     });
 }
 struct BenchKey<'a> {
@@ -67,12 +71,16 @@ struct SerdeBenchKey<'a> {
     inputs: &'a [[u8; 32]],
     optimization: u8,
 }
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "Criterion's finish consumes and drops its benchmark group"
+)]
 fn memory(c: &mut Criterion) {
     let recipe = BenchKey {
         values: ["v1", "x86_64", "source-digest", "-O2"],
     };
     c.bench_function("schema_key_4_fields", |b| {
-        b.iter(|| black_box(Key::new(black_box(&recipe))))
+        b.iter(|| black_box(Key::new(black_box(&recipe))));
     });
 
     let inputs = [[42u8; 32]; 16];
@@ -93,10 +101,10 @@ fn memory(c: &mut Criterion) {
     let key = Key::from_parts("bench", b"memory");
     cache.insert(key, Arc::new(MemoryEntry::new(vec![7; 4096].into(), 0)));
     c.bench_function("quickcache_hit_4k", |b| {
-        b.iter(|| black_box(cache.get(black_box(&key))))
+        b.iter(|| black_box(cache.get(black_box(&key))));
     });
     c.bench_function("quickcache_miss", |b| {
-        b.iter(|| black_box(cache.get(black_box(&Key::from_bytes([255; 32])))))
+        b.iter(|| black_box(cache.get(black_box(&Key::from_bytes([255; 32])))));
     });
     let root = tempfile::tempdir().unwrap();
     let store: Store = StoreBuilder::new()
@@ -135,7 +143,8 @@ fn memory(c: &mut Criterion) {
                                     black_box(
                                         store
                                             .get_blob(
-                                                &keys[(worker * 64 + (i as usize) % 64)
+                                                &keys[(worker * 64
+                                                    + usize::try_from(i % 64).unwrap())
                                                     % keys.len()],
                                             )
                                             .unwrap(),
@@ -171,7 +180,7 @@ fn directories(c: &mut Criterion) {
     };
     drop(store.get_or_insert_runtime(key, &producer).unwrap());
     c.bench_function("runtime_reader_lease", |b| {
-        b.iter(|| black_box(store.get_runtime(&key).unwrap()))
+        b.iter(|| black_box(store.get_runtime(&key).unwrap()));
     });
     c.bench_function("prune_100_directories", |b| {
         b.iter_batched_ref(
@@ -202,7 +211,7 @@ fn directories(c: &mut Criterion) {
                 black_box(store.prune_before(1).unwrap());
             },
             BatchSize::PerIteration,
-        )
+        );
     });
 }
 fn configured() -> Criterion {

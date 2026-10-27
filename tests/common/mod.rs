@@ -23,10 +23,13 @@ pub fn open(root: &Path) -> Store {
         .unwrap()
 }
 pub fn now() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64
+    i64::try_from(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs(),
+    )
+    .unwrap()
 }
 pub fn age(root: &Path, kind: i64, key: &Key) {
     rusqlite::Connection::open(root.join("cache.db"))

@@ -60,7 +60,7 @@ pub enum Error {
     #[error("system timestamp exceeds the SQLite integer range")]
     TimestampOverflow,
     #[error("payload was stored but subsequent pruning failed")]
-    Maintenance(#[source] Box<Error>),
+    Maintenance(#[source] Box<Self>),
     #[error("directory backend root differs from the recorded root {recorded}")]
     DirectoryRoot {
         recorded: PathBuf,
@@ -73,8 +73,8 @@ pub enum Error {
     #[error("producer failed and its partial output could not be cleaned up")]
     Cleanup {
         #[source]
-        production: Box<Error>,
-        cleanup: Box<Error>,
+        production: Box<Self>,
+        cleanup: Box<Self>,
     },
     #[error("prune deadline must not be in the future")]
     FutureDeadline,

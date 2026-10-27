@@ -5,6 +5,11 @@ use crate::{
 use tracing::{debug, info, warn};
 
 impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
+    /// Acquire a reader lease for complete published output.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if directory storage is disabled or lease, metadata or filesystem operations fail.
     pub fn get_runtime(&self, key: &Key) -> Result<Option<RuntimeLease>> {
         let store = self.directory_store()?;
         let lock = self.locks.shared(DIRECTORY, key)?;
@@ -25,6 +30,11 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
             _lock: lock,
         }))
     }
+    /// Acquire a runtime lease, producing output once under an exclusive lease on a miss.
+    ///
+    /// # Errors
+    ///
+    /// Returns a backend, producer, durability, locking or SQLite error. Cleanup errors preserve both the production and removal failures.
     pub fn get_or_insert_runtime(
         &self,
         key: Key,
@@ -75,12 +85,12 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
         self.metadata.begin_build(key, &object, now_secs()?)?;
         info!(%key, %object, "runtime Building");
         let store = self.directory_store()?;
-        let produced = (|| {
+        let result = (|| {
             store.prepare(&object)?;
             let bytes = producer.produce(&store.path(&object))?;
             self.metadata.publish_directory(key, bytes, now_secs()?)
         })();
-        if let Err(production) = produced {
+        if let Err(production) = result {
             warn!(%key, error = %production, "runtime production failed; cleaning partial output");
             return match self.remove_directory(key) {
                 Ok(()) => Err(production),

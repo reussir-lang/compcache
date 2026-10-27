@@ -54,6 +54,10 @@ impl Key {
     /// let key = Key::from_serde("bytecode-v1", &recipe)?;
     /// # Ok::<(), compcache::Error>(())
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns `Error::KeyEncode` for failed serialization or malformed/duplicate map entries.
     pub fn from_serde<T: Serialize + ?Sized>(namespace: &str, recipe: &T) -> crate::Result<Self> {
         let encoded = Encoder::encode(recipe)?;
         let mut hash = blake3::Hasher::new();

@@ -47,6 +47,7 @@ impl Metadata {
             .prepare_cached("SELECT state FROM entries WHERE kind=?1 AND key=?2")?
             .query_row(params![kind, key.0.as_slice()], |r| r.get(0))
             .optional()?;
+        drop(db);
         value.map(EntryStatus::decode).transpose()
     }
     pub(crate) fn directory(&self, key: &Key) -> Result<Option<DirectoryRecord>> {
@@ -78,6 +79,7 @@ impl Metadata {
         if accessed < now {
             Self::touch_locked(&db, BLOB, key, now)?;
         }
+        drop(db);
         Ok(Some(bytes))
     }
     pub(crate) fn touch(&self, kind: i64, key: &Key, now: i64) -> Result<bool> {
@@ -92,6 +94,7 @@ impl Metadata {
         if accessed < now {
             return Self::touch_locked(&db, kind, key, now);
         }
+        drop(db);
         Ok(true)
     }
     fn touch_locked(db: &Connection, kind: i64, key: &Key, now: i64) -> Result<bool> {
@@ -108,9 +111,10 @@ impl Metadata {
             .is_some())
     }
     pub(crate) fn insert_blob(&self, key: &Key, bytes: &[u8], now: i64) -> Result<()> {
+        let size = i64::try_from(bytes.len()).map_err(|_| Error::SizeOverflow)?;
         self.connection.lock().prepare_cached(
             "INSERT INTO entries(kind,key,state,bytes,accessed,payload) VALUES(0,?1,2,?2,?3,?4)")?
-            .execute(params![key.0.as_slice(), bytes.len() as i64, now, bytes])?;
+            .execute(params![key.0.as_slice(), size, now, bytes])?;
         Ok(())
     }
     pub(crate) fn begin_build(&self, key: &Key, object: &Key, now: i64) -> Result<()> {
@@ -186,6 +190,9 @@ impl Metadata {
                 status: EntryStatus::decode(r.get(2)?)?,
             });
         }
+        drop(rows);
+        drop(stmt);
+        drop(db);
         Ok(records)
     }
     pub(crate) fn directory_bytes(&self) -> Result<u64> {

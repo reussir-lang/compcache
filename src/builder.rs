@@ -14,6 +14,7 @@ use std::{fs, io, path::PathBuf};
 ///     .open()?;
 /// # Ok::<(), compcache::Error>(())
 /// ```
+#[must_use = "a builder must be opened to create a store"]
 pub struct StoreBuilder<I = QuickCache, D = ManagedDirectory> {
     path: Option<PathBuf>,
     config: Config,
@@ -63,6 +64,10 @@ impl<I, D> StoreBuilder<I, D> {
     /// let store: Store = StoreBuilder::with_defaults::<App>()?.open()?;
     /// # Ok::<(), compcache::Error>(())
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns a configuration error for an invalid app/environment name or an unavailable platform directory.
     pub fn with_defaults<T: StoreDefaults>() -> Result<Self> {
         defaults::validate_app_name(T::APP_NAME)?;
         let cache_dir =
@@ -100,6 +105,11 @@ impl<I, D> StoreBuilder<I, D> {
     }
 }
 impl<I: InMemoryCache, D: ExtraOnDiskData> StoreBuilder<I, D> {
+    /// Validate configuration, initialize the backends and recover interrupted work.
+    ///
+    /// # Errors
+    ///
+    /// Returns configuration, backend initialization, filesystem or SQLite errors. Existing invalid configuration files are reported rather than replaced by defaults.
     pub fn open(mut self) -> Result<Store<I, D>> {
         if let Some(path) = &self.config_path {
             match fs::metadata(path) {
@@ -150,7 +160,7 @@ mod tests {
 
         fn config() -> Config {
             let mut config = Config::default();
-            config.disk.prune_trigger_bytes = 123456;
+            config.disk.prune_trigger_bytes = 123_456;
             config.disk.io_backoff.max_elapsed_ms = 321;
             config
         }
@@ -158,7 +168,7 @@ mod tests {
 
     // Environment changes are confined to child processes, without unsafe set_var.
     #[test]
-    #[ignore]
+    #[ignore = "invoked in a child process with an isolated environment"]
     fn defaults_worker() {
         let expected_cache = PathBuf::from(std::env::var_os("EXPECTED_CACHE").unwrap());
         let expected_config = PathBuf::from(std::env::var_os("EXPECTED_CONFIG").unwrap());
@@ -195,7 +205,7 @@ mod tests {
             );
         } else {
             assert_eq!(store.root(), expected_cache);
-            assert_eq!(store.config.disk.prune_trigger_bytes, 123456);
+            assert_eq!(store.config.disk.prune_trigger_bytes, 123_456);
             assert_eq!(store.config.disk.io_backoff.max_elapsed_ms, 321);
             if mode == "partial" {
                 assert!(!store.config.memory.enabled);

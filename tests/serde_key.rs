@@ -84,6 +84,18 @@ fn named_field_order_is_canonical_and_serialized_projection_is_respected() {
         target: &'static str,
         compiler: u8,
     }
+    #[derive(Serialize)]
+    struct Renamed {
+        #[serde(rename = "version")]
+        compiler: u8,
+        target: &'static str,
+    }
+    #[derive(Serialize)]
+    struct Skipped {
+        input: u8,
+        #[serde(skip)]
+        _diagnostics: bool,
+    }
     assert_eq!(
         key(&A {
             compiler: 1,
@@ -94,12 +106,6 @@ fn named_field_order_is_canonical_and_serialized_projection_is_respected() {
             compiler: 1
         })
     );
-    #[derive(Serialize)]
-    struct Renamed {
-        #[serde(rename = "version")]
-        compiler: u8,
-        target: &'static str,
-    }
     assert_ne!(
         key(&A {
             compiler: 1,
@@ -110,12 +116,6 @@ fn named_field_order_is_canonical_and_serialized_projection_is_respected() {
             target: "x86_64"
         })
     );
-    #[derive(Serialize)]
-    struct Skipped {
-        input: u8,
-        #[serde(skip)]
-        _diagnostics: bool,
-    }
     assert_eq!(
         key(&Skipped {
             input: 1,
@@ -190,8 +190,8 @@ fn value_kinds_variants_and_boundaries_remain_distinct() {
 fn floating_point_bits_and_full_width_integers_are_preserved() {
     assert_ne!(key(&0.0f64), key(&-0.0f64));
     assert_ne!(
-        key(&f64::from_bits(0x7ff8000000000001)),
-        key(&f64::from_bits(0x7ff8000000000002))
+        key(&f64::from_bits(0x7ff8_0000_0000_0001)),
+        key(&f64::from_bits(0x7ff8_0000_0000_0002))
     );
     assert_eq!(key(&f64::INFINITY), key(&f64::INFINITY));
     assert_ne!(key(&u128::MAX), key(&(u128::MAX - 1)));
@@ -207,13 +207,13 @@ fn binary_mode_and_typed_serialization_errors_are_exposed() {
             serializer.serialize_bytes(&[1, 2])
         }
     }
-    assert_eq!(key(&Mode), key(&Bytes(&[1, 2])));
     struct Fails;
     impl Serialize for Fails {
         fn serialize<S: Serializer>(&self, _: S) -> Result<S::Ok, S::Error> {
             Err(S::Error::custom("fixture failure"))
         }
     }
+    assert_eq!(key(&Mode), key(&Bytes(&[1, 2])));
     assert!(
         matches!(Key::from_serde("test",&Fails),Err(Error::KeyEncode(KeyEncodeError::Serialize(message))) if message == "fixture failure")
     );

@@ -15,6 +15,7 @@ pub trait StoreDefaults {
     const CACHE_DIR_ENV: Option<&'static str> = None;
 
     /// Fallback values for an absent config file and fields omitted from it.
+    #[must_use]
     fn config() -> Config {
         Config::default()
     }

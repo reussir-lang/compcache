@@ -71,13 +71,15 @@ impl Backoff {
 }
 fn jitter(cap: u64) -> u64 {
     static SEQUENCE: AtomicU64 = AtomicU64::new(1);
-    let time = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .subsec_nanos() as u64;
+    let time = u64::from(
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .subsec_nanos(),
+    );
     let random = time
         .wrapping_add(SEQUENCE.fetch_add(1, Ordering::Relaxed))
-        .wrapping_add(std::process::id() as u64);
+        .wrapping_add(u64::from(std::process::id()));
     // Equal jitter: between half and all of the current exponential delay.
     let half = cap / 2;
     half + random % (cap - half + 1)

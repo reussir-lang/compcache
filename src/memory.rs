@@ -16,6 +16,7 @@ pub struct MemoryEntry {
     touched: AtomicI64,
 }
 impl MemoryEntry {
+    #[must_use]
     pub fn new(bytes: Arc<[u8]>, touched: i64) -> Self {
         Self {
             bytes,
@@ -32,6 +33,11 @@ impl MemoryEntry {
 /// Implementations must support concurrent calls. Blob values are immutable snapshots.
 /// A strategy must not share entries between distinct cache roots.
 pub trait InMemoryCache: Send + Sync {
+    /// Initialize the memory strategy from its configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the strategy cannot initialize from the supplied configuration.
     fn from_config(config: &MemoryConfig) -> Result<Self>
     where
         Self: Sized;
@@ -65,6 +71,11 @@ pub struct QuickCache {
     max_entry_weight: u64,
 }
 impl QuickCache {
+    /// Construct a weighted, sharded memory cache.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid memory settings or cache construction options.
     pub fn new(config: &MemoryConfig) -> Result<Self> {
         crate::Config {
             memory: config.clone(),
@@ -92,18 +103,23 @@ impl QuickCache {
             max_entry_weight: config.max_entry_weight,
         })
     }
+    #[must_use]
     pub fn len(&self) -> usize {
         self.cache.len()
     }
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+    #[must_use]
     pub fn weight(&self) -> u64 {
         self.cache.weight()
     }
+    #[must_use]
     pub fn hits(&self) -> u64 {
         self.cache.hits()
     }
+    #[must_use]
     pub fn misses(&self) -> u64 {
         self.cache.misses()
     }

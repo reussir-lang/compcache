@@ -13,6 +13,10 @@ pub struct PruneReport {
 impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
     /// The threshold triggers pruning; it is not a hard quota. Recent and leased
     /// entries survive even if accounted size remains larger than the threshold.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid time/size data or failed metadata, locking or filesystem operations.
     pub fn prune_if_needed(&self) -> Result<PruneReport> {
         let bytes = self.accounted_size()?;
         if bytes <= self.config.disk.prune_trigger_bytes {
@@ -22,11 +26,20 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
                 ..Default::default()
             });
         }
-        let deadline = now_secs()?.saturating_sub(self.config.disk.prune_older_than_secs as i64);
+        let retention =
+            i64::try_from(self.config.disk.prune_older_than_secs).map_err(|_| Error::Config {
+                field: "disk.prune_older_than_secs",
+                reason: "exceeds timestamp range",
+            })?;
+        let deadline = now_secs()?.saturating_sub(retention);
         self.prune_before(deadline)
     }
     /// Prune all entries last accessed strictly before a Unix-second deadline,
     /// independent of the configured size trigger. Future deadlines are rejected.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a future deadline or failed metadata, locking or filesystem operations. Failed deletion remains recoverable.
     pub fn prune_before(&self, deadline: i64) -> Result<PruneReport> {
         if deadline > now_secs()? {
             return Err(Error::FutureDeadline);

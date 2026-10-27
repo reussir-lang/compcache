@@ -17,7 +17,7 @@ impl Metadata {
             db.pragma_update(None, "fullfsync", true)?;
             db.pragma_update(None, "checkpoint_fullfsync", true)?;
         }
-        db.pragma_update(None, "cache_size", -(config.sqlite_cache_kib as i64))?;
+        db.pragma_update(None, "cache_size", -i64::from(config.sqlite_cache_kib))?;
         db.pragma_update(None, "wal_autocheckpoint", config.wal_autocheckpoint_pages)?;
         // Serialize schema inspection with other first-open processes.
         let tx = db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
@@ -76,6 +76,7 @@ impl Metadata {
             }
         }
         tx.commit()?;
+        drop(db);
         Ok(())
     }
 }

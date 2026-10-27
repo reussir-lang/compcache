@@ -22,13 +22,20 @@ fn migrates_v1_directories_without_renaming_or_scanning_them() {
     .unwrap();
     db.execute(
         "INSERT INTO entries VALUES(1,?1,2,?2,?3,NULL)",
-        rusqlite::params![key.as_bytes().as_slice(), bytes as i64, now()],
+        rusqlite::params![
+            key.as_bytes().as_slice(),
+            i64::try_from(bytes).unwrap(),
+            now()
+        ],
     )
     .unwrap();
     drop(db);
     let store = open(root.path());
     let lease = store.get_runtime(&key).unwrap().unwrap();
-    assert_eq!(lease.path(), std::fs::canonicalize(&directory).unwrap());
+    assert_eq!(
+        std::fs::canonicalize(lease.path()).unwrap(),
+        std::fs::canonicalize(&directory).unwrap()
+    );
     assert_eq!(
         std::fs::read(lease.path().join("lib/runtime.so")).unwrap(),
         b"complete runtime"

@@ -1,4 +1,6 @@
-/// A structured key schema. Field names and values have the same compile-time
+/// A structured key schema.
+///
+/// Field names and values have the same compile-time
 /// length; values borrow from the caller and need no serialization or formatting.
 /// Include the compiler version, target, input digests and all relevant options.
 ///
@@ -32,18 +34,22 @@ impl Key {
         Self(*hash.finalize().as_bytes())
     }
     /// For callers with an existing stable binary recipe encoding.
+    #[must_use]
     pub fn from_parts(domain: &str, recipe: &[u8]) -> Self {
         let mut hash = blake3::Hasher::new();
         frame(&mut hash, domain.as_bytes());
         hash.update(recipe);
         Self(*hash.finalize().as_bytes())
     }
+    #[must_use]
     pub fn from_bytes(bytes: [u8; 32]) -> Self {
         Self(bytes)
     }
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8; 32] {
         &self.0
     }
+    #[must_use]
     pub fn to_hex(self) -> String {
         blake3::Hash::from_bytes(self.0).to_hex().to_string()
     }
