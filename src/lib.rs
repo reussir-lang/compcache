@@ -7,6 +7,7 @@ mod backoff;
 mod builder;
 mod cache;
 mod config;
+mod defaults;
 mod directory;
 mod error;
 mod filesystem;
@@ -23,6 +24,7 @@ pub use backoff::Backoff;
 pub use builder::StoreBuilder;
 pub use cache::Store;
 pub use config::{Config, DiskConfig, MemoryConfig};
+pub use defaults::StoreDefaults;
 pub use directory::{
     ArtifactWriter, DirectoryProducer, ExtraOnDiskData, ManagedDirectory, NoExtraData, RuntimeLease,
 };

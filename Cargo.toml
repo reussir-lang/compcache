@@ -7,6 +7,7 @@ description = "Synchronous local compiler cache with SQLite metadata and leased 
 
 [dependencies]
 blake3 = "1.8"
+dirs = "6"
 fs4 = { version = "0.13", features = ["sync"] }
 libc = "0.2"
 parking_lot = "0.12"

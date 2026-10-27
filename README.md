@@ -21,6 +21,55 @@ Choose `Bypass` for no memory layer and `NoExtraData` for SQLite-only payloads.
 The builder can also accept initialized backends using `.in_memory(...)` and
 `.extra_on_disk(...)`.
 
+Applications can supply their name, fallback settings and optional environment
+overrides through `StoreDefaults`:
+
+```rust
+use compcache::{Config, Store, StoreBuilder, StoreDefaults};
+
+struct App;
+impl StoreDefaults for App {
+    const APP_NAME: &'static str = "my-compiler";
+    const CONFIG_DIR_ENV: Option<&'static str> = Some("MY_COMPILER_CONFIG_DIR");
+    const CACHE_DIR_ENV: Option<&'static str> = Some("MY_COMPILER_CACHE_DIR");
+
+    fn config() -> Config {
+        let mut config = Config::default();
+        config.disk.prune_trigger_bytes = 8 << 30;
+        config
+    }
+}
+
+let store: Store = StoreBuilder::with_defaults::<App>()?.open()?;
+# Ok::<(), compcache::Error>(())
+```
+
+`APP_NAME` must be a single directory name. The standard locations, resolved by
+the [`dirs` crate](https://docs.rs/dirs/6.0.0/dirs/), are:
+
+| Platform | Config directory | Cache directory |
+| --- | --- | --- |
+| Linux/XDG | `$XDG_CONFIG_HOME/my-compiler`, otherwise `$HOME/.config/my-compiler` | `$XDG_CACHE_HOME/my-compiler`, otherwise `$HOME/.cache/my-compiler` |
+| Windows | Roaming AppData / `my-compiler` | Local AppData / `my-compiler` |
+| macOS | `$HOME/Library/Application Support/my-compiler` | `$HOME/Library/Caches/my-compiler` |
+
+Nonempty application environment overrides replace the complete directory,
+without appending `APP_NAME`; relative overrides use the working directory.
+Unset or empty overrides use the platform locations. XDG base paths must be
+absolute; empty or relative XDG values use the home-directory fallback.
+If a platform directory cannot be resolved, construction returns `Error::Config`.
+
+On `open()`, the builder loads `config.ncl` from the selected config directory.
+A missing file and fields omitted from a file use `StoreDefaults::config()`;
+omitted nested fields also retain the application's defaults. Nickel is needed
+only when a file exists. Invalid files and other I/O errors are returned.
+The builder creates the cache directory when opening the store; it does not
+create the config directory or write a config file. Subsequent `.path(...)` and
+`.config(...)` calls take precedence, with `.config(...)` disabling file loading.
+`new()` and the standard `Default` implementation retain their existing behavior.
+Directory resolution supports Windows and macOS; store opening still has the
+platform restrictions described below.
+
 Keys can serialize a complete recipe with serde:
 
 ```rust

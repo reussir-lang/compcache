@@ -64,6 +64,12 @@ impl Config {
     /// Evaluate Nickel once during startup; the hot path never starts a process.
     /// Requires the `nickel` executable from the development shell or deployment.
     pub fn from_nickel(path: impl AsRef<Path>) -> Result<Self> {
+        Self::from_nickel_with_defaults(path, Self::default())
+    }
+    pub(crate) fn from_nickel_with_defaults(
+        path: impl AsRef<Path>,
+        defaults: Self,
+    ) -> Result<Self> {
         let path = path.as_ref();
         let output = Command::new("nickel")
             .args(["export", "--format", "json"])
@@ -76,7 +82,9 @@ impl Config {
                 diagnostic: String::from_utf8_lossy(&output.stderr).into_owned(),
             });
         }
-        let config: Self = serde_json::from_slice(&output.stdout)?;
+        let mut value = serde_json::from_slice(&output.stdout)?;
+        fill_defaults(&mut value, serde_json::to_value(defaults)?);
+        let config: Self = serde_json::from_value(value)?;
         config.validate()?;
         Ok(config)
     }
@@ -140,5 +148,22 @@ impl Config {
             }
         }
         Ok(())
+    }
+}
+
+fn fill_defaults(value: &mut serde_json::Value, defaults: serde_json::Value) {
+    if let (serde_json::Value::Object(value), serde_json::Value::Object(defaults)) =
+        (value, defaults)
+    {
+        for (key, default) in defaults {
+            match value.entry(key) {
+                serde_json::map::Entry::Vacant(entry) => {
+                    entry.insert(default);
+                }
+                serde_json::map::Entry::Occupied(mut entry) => {
+                    fill_defaults(entry.get_mut(), default);
+                }
+            }
+        }
     }
 }
