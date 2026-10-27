@@ -60,6 +60,13 @@ impl SchemaKey<4> for BenchKey<'_> {
         self.values
     }
 }
+#[derive(serde::Serialize)]
+struct SerdeBenchKey<'a> {
+    compiler: &'a str,
+    target: &'a str,
+    inputs: &'a [[u8; 32]],
+    optimization: u8,
+}
 fn memory(c: &mut Criterion) {
     let recipe = BenchKey {
         values: ["v1", "x86_64", "source-digest", "-O2"],
@@ -68,6 +75,20 @@ fn memory(c: &mut Criterion) {
         b.iter(|| black_box(Key::new(black_box(&recipe))))
     });
 
+    let inputs = [[42u8; 32]; 16];
+    let mut serde_keys = c.benchmark_group("serde_key");
+    for count in [0, 1, 16] {
+        let recipe = SerdeBenchKey {
+            compiler: "v1",
+            target: "x86_64",
+            inputs: &inputs[..count],
+            optimization: 2,
+        };
+        serde_keys.bench_with_input(BenchmarkId::from_parameter(count), &recipe, |b, recipe| {
+            b.iter(|| black_box(Key::from_serde("bytecode-v1", black_box(recipe)).unwrap()));
+        });
+    }
+    serde_keys.finish();
     let cache = QuickCache::new(&config().memory).unwrap();
     let key = Key::from_parts("bench", b"memory");
     cache.insert(key, Arc::new(MemoryEntry::new(vec![7; 4096].into(), 0)));

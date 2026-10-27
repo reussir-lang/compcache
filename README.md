@@ -21,7 +21,44 @@ Choose `Bypass` for no memory layer and `NoExtraData` for SQLite-only payloads.
 The builder can also accept initialized backends using `.in_memory(...)` and
 `.extra_on_disk(...)`.
 
-Keys use an explicit field schema, without serialization or a formatted namespace:
+Keys can serialize a complete recipe with serde:
+
+```rust
+use compcache::Key;
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct UserKey<'a> {
+    compiler: &'a str,
+    target: &'a str,
+    inputs: &'a [[u8; 32]],
+    optimization: u8,
+    features: &'a [&'a str],
+}
+let recipe = UserKey {
+    compiler: "v1", target: "x86_64", inputs: &[],
+    optimization: 2, features: &["simd"],
+};
+let key = Key::from_serde("bytecode-v1", &recipe)?;
+let bytes = store.get_or_insert_blob(key, || Ok(vec![1, 2, 3]))?;
+```
+
+The namespace identifies the recipe meaning/version. A versioned, typed binary
+encoding feeds BLAKE3-256; maps and named fields are sorted recursively, sequences
+remain ordered, and options/enum variants/numeric kinds stay distinct. Float bits
+are preserved, including signed zero and NaN payloads. Custom serialization runs
+in binary mode. The identity is the serialized projection, so serde renames and
+skipped fields have their normal effect. Unordered sets need caller-side
+ordering because serde represents them as sequences. Rust type names and enum
+indices do not contribute; serialized variant names do.
+
+Serialization allocates for encoding and map sorting. Compute a digest once and
+reuse it for lookups. Failures return `Error::KeyEncode` with a typed
+`KeyEncodeError` source. No SQLite schema change or new dependency is needed.
+The encoding contract and fixed compatibility vector are recorded in
+[the serde work record](agentic-plan/00005-whole-key-serde.typ).
+
+The allocation-free field-schema API is also available:
 
 ```rust
 use compcache::{ArtifactWriter, Key, SchemaKey};

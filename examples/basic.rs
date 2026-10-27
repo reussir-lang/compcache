@@ -1,6 +1,5 @@
 use compcache::{
-    ArtifactWriter, Bypass, Config, Key, ManagedDirectory, QuickCache, Result, SchemaKey,
-    StoreBuilder,
+    ArtifactWriter, Bypass, Config, Key, ManagedDirectory, QuickCache, Result, StoreBuilder,
 };
 
 fn main() -> Result<()> {
@@ -15,14 +14,15 @@ fn main() -> Result<()> {
         .path(&root)
         .config(config.clone())
         .open()?;
-    let source = blake3::hash(b"source").to_hex();
+    let inputs = [*blake3::hash(b"source").as_bytes()];
     let recipe = UserKey {
         compiler: "v1",
         target: "x86_64",
-        source: source.as_str(),
-        flags: "-O2",
+        inputs: &inputs,
+        optimization: 2,
+        features: &["simd"],
     };
-    let key = Key::new(&recipe);
+    let key = Key::from_serde("bytecode-v1", &recipe)?;
     let bytecode = store.get_or_insert_blob(key, || Ok(b"compiled bytecode".to_vec()))?;
     println!("bytecode: {} bytes", bytecode.len());
 
@@ -30,10 +30,14 @@ fn main() -> Result<()> {
         .path(root)
         .config(config)
         .open()?;
-    let runtime_key = Key::new(&UserKey {
-        source: "runtime-source-digest",
-        ..recipe
-    });
+    let runtime_inputs = [*blake3::hash(b"runtime source").as_bytes()];
+    let runtime_key = Key::from_serde(
+        "runtime-v1",
+        &UserKey {
+            inputs: &runtime_inputs,
+            ..recipe
+        },
+    )?;
     let runtime = runtime_store.get_or_insert_runtime(runtime_key, &|path: &std::path::Path| {
         let mut output = ArtifactWriter::new(path);
         output.write_file("runtime.bin", b"precompiled runtime")?;
@@ -44,15 +48,11 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+#[derive(serde::Serialize)]
 struct UserKey<'a> {
     compiler: &'a str,
     target: &'a str,
-    source: &'a str,
-    flags: &'a str,
-}
-impl SchemaKey<4> for UserKey<'_> {
-    const KEY_FIELDS: [&'static str; 4] = ["compiler", "target", "source", "flags"];
-    fn key_value(&self) -> [&str; 4] {
-        [self.compiler, self.target, self.source, self.flags]
-    }
+    inputs: &'a [[u8; 32]],
+    optimization: u8,
+    features: &'a [&'a str],
 }

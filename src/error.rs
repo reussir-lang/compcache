@@ -41,6 +41,8 @@ pub enum Error {
     WalUnavailable,
     #[error("unknown cache entry status {0}")]
     UnknownStatus(i64),
+    #[error("could not encode serde cache key")]
+    KeyEncode(#[from] crate::KeyEncodeError),
     #[error("cache key must be 32 bytes")]
     InvalidKey,
     #[error("cache size exceeds the supported range")]

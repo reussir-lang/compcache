@@ -17,6 +17,7 @@ mod prune;
 mod recovery;
 mod runtime;
 mod schema;
+mod serde_key;
 
 pub use backoff::Backoff;
 pub use builder::StoreBuilder;
@@ -31,3 +32,4 @@ pub use memory::{Bypass, InMemoryCache, MemoryEntry, QuickCache};
 pub use metadata::{EntryKind, EntryStatus};
 pub use prune::PruneReport;
 pub use recovery::RecoveryReport;
+pub use serde_key::KeyEncodeError;

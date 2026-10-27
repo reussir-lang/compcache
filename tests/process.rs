@@ -10,7 +10,21 @@ use std::{
 };
 
 fn key() -> Key {
-    Key::from_parts("runtime", b"crash-test")
+    #[derive(serde::Serialize)]
+    struct Recipe {
+        compiler: &'static str,
+        target: &'static str,
+        input: u64,
+    }
+    Key::from_serde(
+        "process-runtime-v1",
+        &Recipe {
+            compiler: "v1",
+            target: "x86_64",
+            input: 1729,
+        },
+    )
+    .unwrap()
 }
 fn signal_and_wait(root: &Path) -> ! {
     std::fs::write(root.join("worker-ready"), b"ready").unwrap();

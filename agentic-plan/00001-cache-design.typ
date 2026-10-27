@@ -29,6 +29,8 @@ Date: 2026-10-27. Status: implementation and validation complete; native Windows
 
 + Keep user key schemas separate from internal metadata such as byte size, last access, and hashed external-directory references. Either a foreign-key relation or extending the entry table is acceptable; the public schema need not match SQLite's physical schema.
 
++ Add whole-key serde serialization as an additional key constructor after discussion. Retain the borrowed-string field-schema API; serde supports complete nested recipes and shares the same opaque BLAKE3 key representation and physical metadata layout.
+
 == Implementation choices
 These are implementation choices, distinct from the user requirements above.
 
