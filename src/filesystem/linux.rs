@@ -10,7 +10,7 @@ pub(super) fn ensure_local(path: &Path) -> Result<()> {
     }
     // SAFETY: the successful fstatfs call initialized stat.
     let kind = unsafe { stat.assume_init() }.f_type;
-    if !is_local_kind(kind) {
+    if is_remote_kind(kind) {
         return Err(Error::FileSystem {
             path: path.into(),
             kind,
@@ -19,10 +19,18 @@ pub(super) fn ensure_local(path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn is_local_kind(kind: i64) -> bool {
+fn is_remote_kind(kind: i64) -> bool {
     matches!(
         kind,
-        0xef53 | 0x5846_5342 | 0x9123_683e | 0x2fc1_2fc1 | 0x0102_1994 | 0x8584_58f6 | 0xf2f5_2010
+        libc::NFS_SUPER_MAGIC
+            | libc::SMB_SUPER_MAGIC
+            | libc::AFS_SUPER_MAGIC
+            | libc::CODA_SUPER_MAGIC
+            | libc::NCP_SUPER_MAGIC
+            | 0xff53_4d42 // CIFS
+            | 0xfe53_4d42 // SMB2
+            | 0x00c3_6400 // Ceph
+            | 0x0102_1997 // 9p
     )
 }
 
@@ -31,18 +39,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rejects_network_and_unknown_filesystems() {
+    fn rejects_known_network_filesystems() {
         for kind in [
             0x6969,
             0xff53_4d42,
             0xfe53_4d42,
-            0x6573_5546,
             0x00c3_6400,
             0x0102_1997,
-            0,
+            libc::SMB_SUPER_MAGIC,
+            libc::AFS_SUPER_MAGIC,
+            libc::CODA_SUPER_MAGIC,
+            libc::NCP_SUPER_MAGIC,
         ] {
-            assert!(!is_local_kind(kind));
+            assert!(is_remote_kind(kind));
         }
-        assert!(is_local_kind(0x2fc1_2fc1));
+    }
+
+    #[test]
+    fn accepts_unrecognized_filesystems() {
+        for kind in [0xef53, 0x2fc1_2fc1, 0x794c_7630, 0x6573_5546, 0] {
+            assert!(!is_remote_kind(kind));
+        }
     }
 }

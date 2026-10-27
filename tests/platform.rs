@@ -7,6 +7,19 @@ use std::{
 };
 
 #[test]
+fn temporary_storage_uses_the_requested_test_volume() {
+    let Some(expected) = std::env::var_os("COMPCACHE_EXPECT_TEMP_ROOT") else {
+        return;
+    };
+    let root = tempfile::tempdir().unwrap();
+    assert!(
+        std::fs::canonicalize(root.path())
+            .unwrap()
+            .starts_with(std::fs::canonicalize(expected).unwrap())
+    );
+}
+
+#[test]
 fn published_writer_lease_allows_concurrent_readers() {
     let root = tempfile::tempdir().unwrap();
     let store = Arc::new(open(root.path()));

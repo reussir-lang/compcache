@@ -12,7 +12,7 @@ pub(super) fn ensure_local(path: &Path) -> Result<()> {
     // NUL-terminated f_fstypename array supplied by the kernel.
     let stat = unsafe { stat.assume_init() };
     let name = unsafe { CStr::from_ptr(stat.f_fstypename.as_ptr()) };
-    if !is_local_filesystem(stat.f_flags, name.to_bytes()) {
+    if is_remote_mount(stat.f_flags) {
         return Err(Error::FileSystemName {
             path: path.into(),
             name: name.to_string_lossy().into_owned(),
@@ -21,8 +21,8 @@ pub(super) fn ensure_local(path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn is_local_filesystem(flags: u32, name: &[u8]) -> bool {
-    i64::from(flags) & i64::from(libc::MNT_LOCAL) != 0 && matches!(name, b"apfs" | b"hfs")
+fn is_remote_mount(flags: u32) -> bool {
+    i64::from(flags) & i64::from(libc::MNT_LOCAL) == 0
 }
 
 #[cfg(test)]
@@ -30,12 +30,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rejects_remote_and_unvalidated_filesystems() {
+    fn checks_mount_locality_without_checking_filesystem_names() {
         let local = u32::try_from(libc::MNT_LOCAL).unwrap();
-        assert!(is_local_filesystem(local, b"apfs"));
-        assert!(is_local_filesystem(local, b"hfs"));
-        assert!(!is_local_filesystem(0, b"apfs"));
-        assert!(!is_local_filesystem(local, b"smbfs"));
-        assert!(!is_local_filesystem(local, b"unknown"));
+        assert!(!is_remote_mount(local));
+        assert!(is_remote_mount(0));
     }
 }

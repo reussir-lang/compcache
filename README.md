@@ -6,8 +6,9 @@ immutable build recipes. Include the compiler version, target, inputs and flags
 in every recipe.
 
 Linux, Windows and macOS are first-class target platforms, matching Reussir.
-Native storage backends cover 64-bit Linux, local APFS/HFS+ on macOS and local
-NTFS on Windows. Native CI verifies leases, migration, interrupted builds/deletion,
+Native storage backends cover 64-bit Linux, Windows and macOS. Filesystem
+validation is blacklist-only; local ReFS is not rejected by its name.
+Native CI verifies leases, migration, interrupted builds/deletion,
 Windows file-sharing behavior, and strict Clippy on all three platforms.
 
 ```rust
@@ -220,6 +221,9 @@ default-value tests run without Nickel. Documentation-only changes skip CI,
 superseded runs are cancelled, and each job has a 15-minute limit.
 Manual workflow dispatch with `stress=true` adds a ten-second six-process stress
 run on every native runner.
+Setting `refs=true` also creates a disposable ReFS virtual disk on Windows and
+runs storage/recovery and ten-second stress tests with cache roots on that volume.
+ReFS fixture setup is outside routine CI.
 
 Nix uses the same pinned nixpkgs/fenix inputs as `../reussir`, with stable Rust
 1.98.0, Nickel, Typst and SQLite tooling. The proof shell adds only .NET 8;
@@ -245,8 +249,8 @@ guarantees. Current storage implementation status:
 | Platform | Storage status | Required native work |
 | --- | --- | --- |
 | 64-bit Linux | Implemented and validated | Maintain locality and lifecycle tests |
-| Windows | Implemented and validated on native CI; local NTFS | Native storage, lock downgrade, held-file and loaded-DLL tests run in CI |
-| macOS | Implemented and validated on native CI; local APFS/HFS+ | Native storage, durability, lease and recovery tests run in CI |
+| Windows | Native backend with blacklist-only validation | Native storage, lock downgrade, held-file and loaded-DLL tests run in CI |
+| macOS | Native backend with blacklist-only validation | Native storage, durability, lease and recovery tests run in CI |
 
 Platform-specific filesystem operations sit behind the shared synchronous
 SQLite and lease protocol. Native tests cover retained readers,
@@ -254,18 +258,23 @@ concurrent builders, exclusive-to-shared lock conversion, interrupted builds and
 deletion, pruning and recovery. Process-kill tests do not establish power-loss
 durability; publication guarantees need separate platform evidence.
 
-Linux local filesystem validation uses a fail-closed allowlist; NFS, SMB, Ceph,
-FUSE, unknown filesystems and overlay mounts
-are rejected. Filesystem type cannot detect remote-backed block devices or an
-administrator replacing mounts. The protocol assumes cooperating processes and
-a private cache root. Never place a WAL database on a network filesystem
+Filesystem validation uses only blacklists. Linux rejects known network
+filesystem types: NFS, SMB/CIFS/SMB2, AFS, Coda, NCP, Ceph and 9p. Unrecognized
+types, overlay mounts and FUSE are not rejected solely by type. Windows rejects
+remote, unknown and unavailable drive locations. macOS rejects mounts marked
+non-local. There are no filesystem-name restrictions on any platform.
+
+Storage must still support the actual SQLite WAL, file-locking and sync operations;
+errors from those operations are returned. These checks cannot identify every
+remote-backed block device, FUSE transport or replaced mount, and do not prove
+that a filesystem honors its flush/locking contract. Choose a local private cache
+root and use cooperating processes. Never place a WAL database on a network filesystem
 ([SQLite WAL documentation](https://www.sqlite.org/wal.html)).
 
 Filesystem retries use bounded exponential delay and equal jitter; they never
 rerun a producer or blindly replay transactions. Windows sharing/lock violations,
 transient access denial, and nonempty-directory errors are covered by retry
-classification tests. New platform backends must also reject remote/unsupported
-filesystems. On Windows, a scanner or loaded DLL can hold a file without delete sharing, delaying
+classification tests. On Windows, a scanner or loaded DLL can hold a file without delete sharing, delaying
 delete/rename until the handle closes; retry exhaustion must leave `Pruning`
 recoverable. Delete sharing and directory handles require native treatment
 ([CreateFile](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea)),
@@ -275,9 +284,10 @@ Windows retains the shared lock and explicitly releases the exclusive lock
 during a writer-to-reader transition, following
 [LockFileEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex)
 overlap rules. Directory flushing opens writable directory handles with backup
-semantics; flush errors are returned. Local NTFS is supported; remote drives,
-FAT and ReFS are rejected.
-On macOS, mount-locality checks allow APFS and HFS+. The pinned Rust toolchain's
+semantics; flush errors are returned. ReFS, NTFS and other local filesystem names
+are treated alike; their required operations must succeed.
+On macOS, validation checks mount-locality flags without inspecting the filesystem
+name. The pinned Rust toolchain's
 `File::sync_all` uses `F_FULLFSYNC`; SQLite also enables `fullfsync` and
 `checkpoint_fullfsync` for publication and checkpoints
 ([Apple fsync documentation](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/fsync.2.html)).

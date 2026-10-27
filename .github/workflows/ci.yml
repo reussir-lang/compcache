@@ -12,6 +12,10 @@ on:
         description: Run the ten-second native multiprocess stress test
         type: boolean
         default: false
+      refs:
+        description: Test Windows storage on a temporary ReFS virtual disk
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -60,3 +64,6 @@ jobs:
         env:
           COMPCACHE_STRESS_SECONDS: "10"
         run: cargo test --locked --test stress
+      - name: ReFS storage and recovery
+        if: runner.os == 'Windows' && github.event_name == 'workflow_dispatch' && inputs.refs
+        run: ./scripts/test-refs.ps1
