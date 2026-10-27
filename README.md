@@ -20,6 +20,8 @@ strategy. `Store<I, D>` keeps concrete backend types, without dynamic dispatch.
 Choose `Bypass` for no memory layer and `NoExtraData` for SQLite-only payloads.
 The builder can also accept initialized backends using `.in_memory(...)` and
 `.extra_on_disk(...)`.
+`QuickCache` indexes recipe keys with entropy-seeded
+[`rapidhash::fast::RandomState`](https://docs.rs/rapidhash/4.5.1/rapidhash/fast/type.RandomState.html).
 
 Applications can supply their name, fallback settings and optional environment
 overrides through `StoreDefaults`:

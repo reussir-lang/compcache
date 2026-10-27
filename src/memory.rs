@@ -1,8 +1,9 @@
 use crate::{Key, MemoryConfig, Result};
 use quick_cache::{
-    DefaultHashBuilder, OptionsBuilder, Weighter,
+    OptionsBuilder, Weighter,
     sync::{Cache, DefaultLifecycle},
 };
+use rapidhash::fast::RandomState;
 use std::sync::{
     Arc,
     atomic::{AtomicI64, Ordering},
@@ -60,7 +61,7 @@ impl Weighter<Key, Arc<MemoryEntry>> for ByteWeight {
     }
 }
 pub struct QuickCache {
-    cache: Cache<Key, Arc<MemoryEntry>, ByteWeight>,
+    cache: Cache<Key, Arc<MemoryEntry>, ByteWeight, RandomState>,
     max_entry_weight: u64,
 }
 impl QuickCache {
@@ -85,7 +86,7 @@ impl QuickCache {
                     .build()
                     .map_err(|e| crate::Error::MemoryOptions(Box::new(e)))?,
                 ByteWeight,
-                DefaultHashBuilder::default(),
+                RandomState::new(),
                 DefaultLifecycle::default(),
             ),
             max_entry_weight: config.max_entry_weight,
