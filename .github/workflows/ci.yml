@@ -38,7 +38,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install the toolchain from rust-toolchain.toml
-        run: rustup show
+        run: rustup install
       - uses: Swatinem/rust-cache@v2
       - name: Check formatting
         if: runner.os == 'Linux'

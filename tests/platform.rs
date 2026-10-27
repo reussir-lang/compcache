@@ -48,6 +48,32 @@ fn unicode_root_and_artifacts_survive_reopening() {
     );
 }
 
+#[test]
+fn malformed_recorded_root_is_reported_without_resetting_store() {
+    let root = tempfile::tempdir().unwrap();
+    let key = Key::from_parts("platform", b"metadata-corruption");
+    {
+        let store = open(root.path());
+        store
+            .get_or_insert_blob(key, || Ok(b"preserved".to_vec()))
+            .unwrap();
+    }
+    let db = rusqlite::Connection::open(root.path().join("cache.db")).unwrap();
+    db.execute(
+        "UPDATE settings SET value=?1 WHERE name='directory_root'",
+        [&[0u8][..]],
+    )
+    .unwrap();
+    let result: compcache::Result<Store> = StoreBuilder::new().path(root.path()).open();
+    assert!(matches!(result, Err(compcache::Error::Integrity(_))));
+    let bytes: Vec<u8> = db
+        .query_row("SELECT payload FROM entries WHERE kind=0", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(bytes, b"preserved");
+}
+
 #[cfg(windows)]
 mod windows {
     use super::*;

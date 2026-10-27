@@ -112,6 +112,23 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> StoreBuilder<I, D> {
     /// Returns configuration, backend initialization, filesystem or SQLite errors. Existing invalid configuration files are reported rather than replaced by defaults.
     pub fn open(mut self) -> Result<Store<I, D>> {
         if let Some(path) = &self.config_path {
+            // Windows reports a child of a regular file as NotFound. Reject an
+            // invalid configured directory before considering a missing file.
+            if let Some(parent) = path.parent() {
+                match fs::metadata(parent) {
+                    Ok(metadata) if !metadata.is_dir() => {
+                        return Err(io::Error::new(
+                            io::ErrorKind::NotADirectory,
+                            "configuration directory is not a directory",
+                        ))
+                        .at("inspect configuration directory", parent);
+                    }
+                    Err(error) if error.kind() != io::ErrorKind::NotFound => {
+                        return Err(error).at("inspect configuration directory", parent);
+                    }
+                    _ => {}
+                }
+            }
             match fs::metadata(path) {
                 Ok(_) => {
                     self.config = Config::from_nickel_with_defaults(path, self.config)?;
@@ -146,7 +163,7 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> StoreBuilder<I, D> {
     }
 }
 
-#[cfg(all(test, target_os = "linux", target_pointer_width = "64"))]
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::{Bypass, NoExtraData};
@@ -198,13 +215,16 @@ mod tests {
         }
         let store = result.unwrap();
         if mode == "explicit" {
-            assert_eq!(store.root(), expected_cache.join("explicit"));
+            assert_eq!(
+                store.root(),
+                fs::canonicalize(expected_cache.join("explicit")).unwrap()
+            );
             assert_eq!(
                 store.config.disk.prune_trigger_bytes,
                 Config::default().disk.prune_trigger_bytes
             );
         } else {
-            assert_eq!(store.root(), expected_cache);
+            assert_eq!(store.root(), fs::canonicalize(expected_cache).unwrap());
             assert_eq!(store.config.disk.prune_trigger_bytes, 123_456);
             assert_eq!(store.config.disk.io_backoff.max_elapsed_ms, 321);
             if mode == "partial" {
@@ -216,7 +236,10 @@ mod tests {
 
     #[test]
     fn application_defaults_paths_and_overrides() {
-        test_defaults(&["xdg", "home", "overrides", "io-error", "explicit"]);
+        if cfg!(target_os = "linux") {
+            test_defaults(&["xdg", "home"]);
+        }
+        test_defaults(&["overrides", "io-error", "explicit"]);
     }
 
     #[test]

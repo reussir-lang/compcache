@@ -57,7 +57,7 @@ impl Metadata {
         if let Some(recorded) = recorded {
             if root.is_some_and(|p| encode_path(p) != recorded) {
                 return Err(Error::DirectoryRoot {
-                    recorded: decode_path(recorded),
+                    recorded: decode_path(&recorded)?,
                     requested: root.map(Path::to_path_buf),
                 });
             }
@@ -87,9 +87,12 @@ fn encode_path(path: &Path) -> Vec<u8> {
     path.as_os_str().as_bytes().to_vec()
 }
 #[cfg(unix)]
-fn decode_path(bytes: Vec<u8>) -> std::path::PathBuf {
+fn decode_path(bytes: &[u8]) -> Result<std::path::PathBuf> {
     use std::os::unix::ffi::OsStringExt;
-    std::ffi::OsString::from_vec(bytes).into()
+    if bytes.contains(&0) {
+        return Err(Error::Integrity("directory root contains NUL".into()));
+    }
+    Ok(std::ffi::OsString::from_vec(bytes.to_vec()).into())
 }
 #[cfg(windows)]
 fn encode_path(path: &Path) -> Vec<u8> {
@@ -100,11 +103,17 @@ fn encode_path(path: &Path) -> Vec<u8> {
         .collect()
 }
 #[cfg(windows)]
-fn decode_path(bytes: Vec<u8>) -> std::path::PathBuf {
+fn decode_path(bytes: &[u8]) -> Result<std::path::PathBuf> {
     use std::os::windows::ffi::OsStringExt;
-    let wide: Vec<_> = bytes
-        .chunks_exact(2)
-        .map(|b| u16::from_le_bytes([b[0], b[1]]))
-        .collect();
-    std::ffi::OsString::from_wide(&wide).into()
+    let (units, remainder) = bytes.as_chunks::<2>();
+    if !remainder.is_empty() {
+        return Err(Error::Integrity(
+            "directory root has truncated UTF-16".into(),
+        ));
+    }
+    let wide: Vec<_> = units.iter().map(|b| u16::from_le_bytes(*b)).collect();
+    if wide.contains(&0) {
+        return Err(Error::Integrity("directory root contains NUL".into()));
+    }
+    Ok(std::ffi::OsString::from_wide(&wide).into())
 }

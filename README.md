@@ -211,13 +211,15 @@ nix develop .#proof --command bash scripts/check-model.sh
 GitHub Actions runs one debug-build job each on Linux, Windows and macOS, using
 the pinned Rust toolchain and cached dependencies. Each job compiles all targets
 and runs unit, key, documentation, storage, schema and subprocess crash-recovery
-tests. Windows also exercises held files and loaded DLLs. Linux additionally
-runs formatting and Clippy.
+tests. Windows also exercises held files and loaded DLLs. Pedantic and nursery
+Clippy checks run with warnings denied on every platform; formatting runs on Linux.
 
 Routine CI excludes benchmarks, six-process stress, the P checker, and Nickel
 configuration evaluation. Run those locally with the commands above. Path and
 default-value tests run without Nickel. Documentation-only changes skip CI,
 superseded runs are cancelled, and each job has a 15-minute limit.
+Manual workflow dispatch with `stress=true` adds a ten-second six-process stress
+run on every native runner.
 
 Nix uses the same pinned nixpkgs/fenix inputs as `../reussir`, with stable Rust
 1.98.0, Nickel, Typst and SQLite tooling. The proof shell adds only .NET 8;
@@ -246,8 +248,8 @@ guarantees. Current storage implementation status:
 | Windows | Native NTFS backend; qualification in progress | Native storage, lock downgrade, held-file and loaded-DLL tests run in CI |
 | macOS | Native APFS/HFS+ backend; qualification in progress | Native storage, durability, lease and recovery tests run in CI |
 
-Platform-specific filesystem operations will sit behind the shared synchronous
-SQLite and lease protocol. Native acceptance requires tests for retained readers,
+Platform-specific filesystem operations sit behind the shared synchronous
+SQLite and lease protocol. Native tests cover retained readers,
 concurrent builders, exclusive-to-shared lock conversion, interrupted builds and
 deletion, pruning and recovery. Process-kill tests do not establish power-loss
 durability; publication guarantees need separate platform evidence.
@@ -269,9 +271,13 @@ recoverable. Delete sharing and directory handles require native treatment
 ([CreateFile](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea)),
 and file flush semantics must not be confused with directory publication
 ([FlushFileBuffers](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)).
-Windows also requires an explicit exclusive-to-shared lease transition:
-overlapping shared and exclusive locks on one handle do not release the
-exclusive lock ([LockFileEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex)).
-On macOS, filesystem locality and the distinction between `fsync` and
-`F_FULLFSYNC` must be addressed when establishing publication durability
+Windows retains the shared lock and explicitly releases the exclusive lock
+during a writer-to-reader transition, following
+[LockFileEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex)
+overlap rules. Directory flushing opens writable directory handles with backup
+semantics; flush errors are returned. Local NTFS is supported; remote drives,
+FAT and ReFS are rejected.
+On macOS, mount-locality checks allow APFS and HFS+. The pinned Rust toolchain's
+`File::sync_all` uses `F_FULLFSYNC`; SQLite also enables `fullfsync` and
+`checkpoint_fullfsync` for publication and checkpoints
 ([Apple fsync documentation](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/fsync.2.html)).
