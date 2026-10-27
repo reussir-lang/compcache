@@ -249,7 +249,7 @@ guarantees. Current storage implementation status:
 | Platform | Storage status | Required native work |
 | --- | --- | --- |
 | 64-bit Linux | Implemented and validated | Maintain locality and lifecycle tests |
-| Windows | Native backend with blacklist-only validation | Native storage, lock downgrade, held-file and loaded-DLL tests run in CI |
+| Windows | Blacklist-only validation; verified on NTFS and ReFS | Native storage, lock downgrade, held-file and loaded-DLL tests; optional ReFS-volume tests |
 | macOS | Native backend with blacklist-only validation | Native storage, durability, lease and recovery tests run in CI |
 
 Platform-specific filesystem operations sit behind the shared synchronous

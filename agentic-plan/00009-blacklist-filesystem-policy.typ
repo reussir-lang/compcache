@@ -22,3 +22,12 @@ Added the manual refs=true CI input and scripts/test-refs.ps1. The Windows fixtu
 
 == 2026-10-27: Local verification before native CI
 Formatting, pedantic/nursery all-target Clippy with warnings denied, the complete Rust suite including short multiprocess stress, workflow actionlint and compilation of this Typst record pass on Linux. README and source/test searches find no remaining filesystem-name restriction or Linux positive-list description. All tracked plan logs from commit 41823d3 remain byte-for-byte unchanged; this change adds only record 00009. Native and actual ReFS-volume results are still pending.
+
+== 2026-10-27: Native and actual ReFS verification completed
+Hosted run 40594074081 at commit 3693c60 passes on Linux, macOS and Windows with strict Clippy, native storage/schema/process recovery and ten-second six-process stress. Job durations including setup/cache handling are 28 seconds on Ubuntu, 42 seconds on macOS and 113 seconds on Windows.
+
+The Windows ReFS step successfully creates and formats the disposable virtual disk, reports FileSystemType ReFS, and passes the storage/schema/platform/process/store suites with temporary roots on that volume. The requested-volume assertion passes. Held-file and loaded-DLL tests pass on ReFS, as does ten-second six-process stress. DiskPart successfully detaches the fixture afterward and the script removes it. ReFS is therefore exercised on a real mounted ReFS volume, rather than only accepted by a classifier test.
+
+#link("https://github.com/reussir-lang/compcache/actions/runs/40594074081")[Native and ReFS qualification run 40594074081]
+
+The README's current Windows status now mentions verified ReFS tests. This entry is appended; every earlier plan/log body remains unchanged.
