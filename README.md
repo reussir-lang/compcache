@@ -6,10 +6,9 @@ immutable build recipes. Include the compiler version, target, inputs and flags
 in every recipe.
 
 Linux, Windows and macOS are first-class target platforms, matching Reussir.
-The storage backend is currently implemented and validated on 64-bit Linux;
-Windows and macOS storage support is required work in progress. Both currently
-return `Error::UnsupportedPlatform` when opening a store. Directory discovery,
-key derivation and the in-memory cache are available across these platforms.
+Native storage backends cover 64-bit Linux, local APFS/HFS+ on macOS and local
+NTFS on Windows. Native storage qualification is being run in CI, including
+leases, migration, interrupted builds/deletion and Windows file-sharing behavior.
 
 ```rust
 use compcache::{Config, ManagedDirectory, QuickCache, StoreBuilder};
@@ -211,16 +210,14 @@ nix develop .#proof --command bash scripts/check-model.sh
 
 GitHub Actions runs one debug-build job each on Linux, Windows and macOS, using
 the pinned Rust toolchain and cached dependencies. Each job compiles all targets
-and runs portable unit, key and documentation tests. Windows and macOS also run
-the in-memory cache concurrency/weight test. Linux additionally runs formatting,
-Clippy and the storage, schema, and subprocess crash-recovery tests.
+and runs unit, key, documentation, storage, schema and subprocess crash-recovery
+tests. Windows also exercises held files and loaded DLLs. Linux additionally
+runs formatting and Clippy.
 
 Routine CI excludes benchmarks, six-process stress, the P checker, and Nickel
 configuration evaluation. Run those locally with the commands above. Path and
 default-value tests run without Nickel. Documentation-only changes skip CI,
 superseded runs are cancelled, and each job has a 15-minute limit.
-Windows/macOS storage tests must be enabled as their native backends are
-completed. Passing portable tests does not establish native storage support.
 
 Nix uses the same pinned nixpkgs/fenix inputs as `../reussir`, with stable Rust
 1.98.0, Nickel, Typst and SQLite tooling. The proof shell adds only .NET 8;
@@ -246,8 +243,8 @@ guarantees. Current storage implementation status:
 | Platform | Storage status | Required native work |
 | --- | --- | --- |
 | 64-bit Linux | Implemented and validated | Maintain locality and lifecycle tests |
-| Windows | Required; opening currently returns `UnsupportedPlatform` | Local-volume validation, directory durability, lock downgrading, sharing-violation and loaded-DLL tests |
-| macOS | Required; opening currently returns `UnsupportedPlatform` | Local-filesystem validation, directory durability, native lease and recovery tests |
+| Windows | Native NTFS backend; qualification in progress | Native storage, lock downgrade, held-file and loaded-DLL tests run in CI |
+| macOS | Native APFS/HFS+ backend; qualification in progress | Native storage, durability, lease and recovery tests run in CI |
 
 Platform-specific filesystem operations will sit behind the shared synchronous
 SQLite and lease protocol. Native acceptance requires tests for retained readers,

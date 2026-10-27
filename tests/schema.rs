@@ -28,7 +28,7 @@ fn migrates_v1_directories_without_renaming_or_scanning_them() {
     drop(db);
     let store = open(root.path());
     let lease = store.get_runtime(&key).unwrap().unwrap();
-    assert_eq!(lease.path(), directory);
+    assert_eq!(lease.path(), std::fs::canonicalize(&directory).unwrap());
     assert_eq!(
         std::fs::read(lease.path().join("lib/runtime.so")).unwrap(),
         b"complete runtime"

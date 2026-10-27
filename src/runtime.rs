@@ -1,8 +1,7 @@
 use crate::{
     DirectoryProducer, EntryStatus, Error, ExtraOnDiskData, InMemoryCache, Key, Result,
-    RuntimeLease, Store, cache::now_secs, error::IoContext, metadata::DIRECTORY,
+    RuntimeLease, Store, cache::now_secs, filesystem::retain_shared, metadata::DIRECTORY,
 };
-use fs4::fs_std::FileExt;
 use tracing::{debug, info, warn};
 
 impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
@@ -48,7 +47,7 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
             } else {
                 self.produce_runtime(&key, producer)?
             };
-            FileExt::lock_shared(&lock).at("retain runtime reader lease", store.path(&object))?;
+            retain_shared(&lock, &store.path(&object))?;
             // Conversion may release the old lock: verify both state and reference.
             let valid = self
                 .metadata

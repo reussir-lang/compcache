@@ -31,7 +31,9 @@ pub enum Error {
     ConfigDecode(#[from] serde_json::Error),
     #[error("unsupported or remote filesystem {kind:#x} at {path}")]
     FileSystem { path: PathBuf, kind: i64 },
-    #[error("local filesystem validation is currently supported only on 64-bit Linux")]
+    #[error("unsupported or remote filesystem {name} at {path}")]
+    FileSystemName { path: PathBuf, name: String },
+    #[error("this platform does not support the cache filesystem protocol")]
     UnsupportedPlatform,
     #[error("unsupported cache schema version {0}")]
     Schema(i64),

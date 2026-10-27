@@ -12,6 +12,11 @@ impl Metadata {
             return Err(Error::WalUnavailable);
         }
         db.pragma_update(None, "synchronous", "FULL")?;
+        #[cfg(target_os = "macos")]
+        {
+            db.pragma_update(None, "fullfsync", true)?;
+            db.pragma_update(None, "checkpoint_fullfsync", true)?;
+        }
         db.pragma_update(None, "cache_size", -(config.sqlite_cache_kib as i64))?;
         db.pragma_update(None, "wal_autocheckpoint", config.wal_autocheckpoint_pages)?;
         // Serialize schema inspection with other first-open processes.

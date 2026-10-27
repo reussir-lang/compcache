@@ -222,7 +222,7 @@ fn runtime_location_is_resolved_from_sqlite_metadata() {
         )
         .unwrap();
     let lease = store.get_runtime(&key).unwrap().unwrap();
-    assert_eq!(lease.path(), relocated);
+    assert_eq!(lease.path(), std::fs::canonicalize(&relocated).unwrap());
     assert_eq!(
         std::fs::read(lease.path().join("lib/runtime.so")).unwrap(),
         b"complete runtime"

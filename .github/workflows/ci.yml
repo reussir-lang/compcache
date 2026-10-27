@@ -49,10 +49,5 @@ jobs:
         run: cargo test --locked --test key --test serde_key
       - name: Documentation tests
         run: cargo test --locked --doc
-      # Enable storage suites here once the native platform backends are ready.
-      - name: Native in-memory cache test
-        if: runner.os != 'Linux'
-        run: cargo test --locked --test store quickcache_enforces_weight_and_is_shared_safely -- --exact
       - name: Storage and process recovery tests
-        if: runner.os == 'Linux'
-        run: cargo test --locked --test store --test maintenance --test schema --test process
+        run: cargo test --locked --test store --test maintenance --test schema --test process --test platform
