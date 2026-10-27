@@ -7,8 +7,8 @@ in every recipe.
 
 Linux, Windows and macOS are first-class target platforms, matching Reussir.
 Native storage backends cover 64-bit Linux, local APFS/HFS+ on macOS and local
-NTFS on Windows. Native storage qualification is being run in CI, including
-leases, migration, interrupted builds/deletion and Windows file-sharing behavior.
+NTFS on Windows. Native CI verifies leases, migration, interrupted builds/deletion,
+Windows file-sharing behavior, and strict Clippy on all three platforms.
 
 ```rust
 use compcache::{Config, ManagedDirectory, QuickCache, StoreBuilder};
@@ -245,8 +245,8 @@ guarantees. Current storage implementation status:
 | Platform | Storage status | Required native work |
 | --- | --- | --- |
 | 64-bit Linux | Implemented and validated | Maintain locality and lifecycle tests |
-| Windows | Native NTFS backend; qualification in progress | Native storage, lock downgrade, held-file and loaded-DLL tests run in CI |
-| macOS | Native APFS/HFS+ backend; qualification in progress | Native storage, durability, lease and recovery tests run in CI |
+| Windows | Implemented and validated on native CI; local NTFS | Native storage, lock downgrade, held-file and loaded-DLL tests run in CI |
+| macOS | Implemented and validated on native CI; local APFS/HFS+ | Native storage, durability, lease and recovery tests run in CI |
 
 Platform-specific filesystem operations sit behind the shared synchronous
 SQLite and lease protocol. Native tests cover retained readers,

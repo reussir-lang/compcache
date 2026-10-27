@@ -2,13 +2,13 @@
 #set page(paper: "a4", margin: 22mm)
 #set text(size: 10pt)
 = First-class platforms and lightweight CI
-Date: 2026-10-27. Status: requirement and CI baseline recorded; Windows/macOS storage backends remain required work.
+Date: 2026-10-27. Status: historical requirement/CI baseline; native storage qualification subsequently completed in run 40592018954, recorded in 00007-native-storage-and-strict-clippy.typ.
 
 == Requirement
 Linux, Windows and macOS are first-class targets because Reussir supports all three. Platform support includes native storage behavior, not only directory discovery or successful compilation. Maintain the synchronous API, shared SQLite WAL lifecycle, immutable recipe identity, retained reader leases and recoverable interrupted work on every target.
 
 == Current baseline
-Store opening currently supports only 64-bit Linux. Windows and macOS return UnsupportedPlatform. Standard directory resolution and entropy-seeded rapidhash indexing already have cross-platform implementations. Existing Linux storage/crash tests and injected Windows retry tests do not establish native storage acceptance on other hosts.
+At the creation of this baseline, store opening supported only 64-bit Linux; Windows/macOS returned UnsupportedPlatform. Standard directory resolution and entropy-seeded rapidhash indexing already had cross-platform implementations. That portable-only baseline was superseded by native backends and the later qualification; its results alone did not establish native storage acceptance.
 
 == Native implementation plan
 + Isolate locality checks, directory publication/sync and lock transitions in small platform modules. Keep the shared cache lifecycle and metadata schema.
