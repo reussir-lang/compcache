@@ -205,16 +205,17 @@ mod tests {
     }
 
     #[test]
-    fn application_defaults_paths_overrides_and_config_loading() {
-        for mode in [
-            "xdg",
-            "home",
-            "overrides",
-            "partial",
-            "invalid",
-            "io-error",
-            "explicit",
-        ] {
+    fn application_defaults_paths_and_overrides() {
+        test_defaults(&["xdg", "home", "overrides", "io-error", "explicit"]);
+    }
+
+    #[test]
+    fn application_defaults_config_loading() {
+        test_defaults(&["partial", "invalid"]);
+    }
+
+    fn test_defaults(modes: &[&str]) {
+        for &mode in modes {
             let root = tempfile::tempdir().unwrap();
             let mut command = Command::new(std::env::current_exe().unwrap());
             command

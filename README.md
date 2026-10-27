@@ -5,6 +5,12 @@ SQLite WAL database, with no server or async runtime. BLAKE3-256 keys identify
 immutable build recipes. Include the compiler version, target, inputs and flags
 in every recipe.
 
+Linux, Windows and macOS are first-class target platforms, matching Reussir.
+The storage backend is currently implemented and validated on 64-bit Linux;
+Windows and macOS storage support is required work in progress. Both currently
+return `Error::UnsupportedPlatform` when opening a store. Directory discovery,
+key derivation and the in-memory cache are available across these platforms.
+
 ```rust
 use compcache::{Config, ManagedDirectory, QuickCache, StoreBuilder};
 
@@ -72,7 +78,16 @@ create the config directory or write a config file. Subsequent `.path(...)` and
 Directory resolution supports Windows and macOS; store opening still has the
 platform restrictions described below.
 
-Keys can serialize a complete recipe with serde:
+Key construction does not require serde. `Key::from_parts` accepts a stable
+binary recipe, `Key::from_bytes` accepts an existing BLAKE3-256 digest, and
+`SchemaKey` accepts named borrowed-string fields. `Key::from_serde` is a
+convenience adapter for nested recipes; serde is also used for configuration.
+Persistent identity requires deterministic, versioned input encoding; Rust's
+standard `Hash` trait does not promise a portable encoding across platforms or
+compiler versions ([Rust portability documentation](https://doc.rust-lang.org/std/hash/trait.Hash.html#portability)).
+Key encoding happens outside repeated cache lookups.
+
+For example, a complete recipe can use serde:
 
 ```rust
 use compcache::Key;
@@ -194,6 +209,19 @@ cargo bench --bench cache
 nix develop .#proof --command bash scripts/check-model.sh
 ```
 
+GitHub Actions runs one debug-build job each on Linux, Windows and macOS, using
+the pinned Rust toolchain and cached dependencies. Each job compiles all targets
+and runs portable unit, key and documentation tests. Windows and macOS also run
+the in-memory cache concurrency/weight test. Linux additionally runs formatting,
+Clippy and the storage, schema, and subprocess crash-recovery tests.
+
+Routine CI excludes benchmarks, six-process stress, the P checker, and Nickel
+configuration evaluation. Run those locally with the commands above. Path and
+default-value tests run without Nickel. Documentation-only changes skip CI,
+superseded runs are cancelled, and each job has a 15-minute limit.
+Windows/macOS storage tests must be enabled as their native backends are
+completed. Passing portable tests does not establish native storage support.
+
 Nix uses the same pinned nixpkgs/fenix inputs as `../reussir`, with stable Rust
 1.98.0, Nickel, Typst and SQLite tooling. The proof shell adds only .NET 8;
 P 3.1.0 is pinned in the project-local tool manifest. No LLVM/MLIR, Node, JVM,
@@ -212,8 +240,23 @@ COMPCACHE_STRESS_SECONDS=30 COMPCACHE_STRESS_REPORT=/tmp/stress.json \
   cargo test --test stress -- --nocapture
 ```
 
-The initial supported platform is Linux. Local filesystem validation uses a
-fail-closed allowlist; NFS, SMB, Ceph, FUSE, unknown filesystems and overlay mounts
+All three platforms must provide the same publication, reader-lease and recovery
+guarantees. Current storage implementation status:
+
+| Platform | Storage status | Required native work |
+| --- | --- | --- |
+| 64-bit Linux | Implemented and validated | Maintain locality and lifecycle tests |
+| Windows | Required; opening currently returns `UnsupportedPlatform` | Local-volume validation, directory durability, lock downgrading, sharing-violation and loaded-DLL tests |
+| macOS | Required; opening currently returns `UnsupportedPlatform` | Local-filesystem validation, directory durability, native lease and recovery tests |
+
+Platform-specific filesystem operations will sit behind the shared synchronous
+SQLite and lease protocol. Native acceptance requires tests for retained readers,
+concurrent builders, exclusive-to-shared lock conversion, interrupted builds and
+deletion, pruning and recovery. Process-kill tests do not establish power-loss
+durability; publication guarantees need separate platform evidence.
+
+Linux local filesystem validation uses a fail-closed allowlist; NFS, SMB, Ceph,
+FUSE, unknown filesystems and overlay mounts
 are rejected. Filesystem type cannot detect remote-backed block devices or an
 administrator replacing mounts. The protocol assumes cooperating processes and
 a private cache root. Never place a WAL database on a network filesystem
@@ -222,11 +265,16 @@ a private cache root. Never place a WAL database on a network filesystem
 Filesystem retries use bounded exponential delay and equal jitter; they never
 rerun a producer or blindly replay transactions. Windows sharing/lock violations,
 transient access denial, and nonempty-directory errors are covered by retry
-classification tests. Windows store opening remains unsupported until native
-volume validation and directory durability are implemented and tested. On
-Windows, a scanner or loaded DLL can hold a file without delete sharing, delaying
+classification tests. New platform backends must also reject remote/unsupported
+filesystems. On Windows, a scanner or loaded DLL can hold a file without delete sharing, delaying
 delete/rename until the handle closes; retry exhaustion must leave `Pruning`
 recoverable. Delete sharing and directory handles require native treatment
 ([CreateFile](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea)),
 and file flush semantics must not be confused with directory publication
 ([FlushFileBuffers](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)).
+Windows also requires an explicit exclusive-to-shared lease transition:
+overlapping shared and exclusive locks on one handle do not release the
+exclusive lock ([LockFileEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex)).
+On macOS, filesystem locality and the distinction between `fsync` and
+`F_FULLFSYNC` must be addressed when establishing publication durability
+([Apple fsync documentation](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/fsync.2.html)).

@@ -7,6 +7,8 @@
 Support general serde values through whole-key serialization. The user chose this after discussion of serializing the whole recipe versus retaining KEY_FIELDS with heterogeneous serialized values. Keep the existing borrowed-string SchemaKey path available.
 
 == Work plan and implementation
+Key identity does not inherently require serde: Key.from_parts accepts canonical recipe bytes, Key.from_bytes accepts an existing BLAKE3-256 digest, and SchemaKey supports named borrowed fields. The serde constructor supplies convenient traversal of nested values under the encoding contract below. It does not run on repeated cache lookups. Standard Rust Hash does not promise a stable, portable input encoding and is not a replacement for that contract. Serde also remains a configuration dependency; no adapter removal or dependency feature split is implemented by this clarification.
+
 + Add `Key::from_serde(namespace, &recipe)` accepting any serde Serialize value, returning the existing Key type through the library Result.
 + Use a deterministic, versioned binary encoding with BLAKE3-256, canonical map ordering and ordered sequences. Preserve serde value kinds, variants, optional values and floating-point bits.
 + Keep the physical SQLite metadata schema and the existing SchemaKey digests intact. No new serialization-format dependency is needed.

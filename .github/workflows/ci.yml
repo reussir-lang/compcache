@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**/*.md", "agentic-plan/**"]
+  pull_request:
+    paths-ignore: ["**/*.md", "agentic-plan/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  native:
+    name: Native (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Install the toolchain from rust-toolchain.toml
+        run: rustup show
+      - uses: Swatinem/rust-cache@v2
+      - name: Check formatting
+        if: runner.os == 'Linux'
+        run: cargo fmt --check
+      - name: Check all targets
+        run: cargo check --locked --all-targets
+      - name: Clippy
+        if: runner.os == 'Linux'
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Unit tests without the external Nickel CLI
+        run: cargo test --locked --lib -- --skip builder::tests::application_defaults_config_loading
+      - name: Key compatibility tests
+        run: cargo test --locked --test key --test serde_key
+      - name: Documentation tests
+        run: cargo test --locked --doc
+      # Enable storage suites here once the native platform backends are ready.
+      - name: Native in-memory cache test
+        if: runner.os != 'Linux'
+        run: cargo test --locked --test store quickcache_enforces_weight_and_is_shared_safely -- --exact
+      - name: Storage and process recovery tests
+        if: runner.os == 'Linux'
+        run: cargo test --locked --test store --test maintenance --test schema --test process

@@ -2,7 +2,7 @@
 #set page(paper: "a4", margin: 22mm)
 #set text(size: 10pt)
 = Compcache: decisions and execution record
-Date: 2026-10-27. Status: implementation and validation complete; native Windows execution remains future platform work.
+Date: 2026-10-27. Status: Linux implementation validated; first-class Windows and macOS storage support is required and remains in progress.
 
 == User decisions
 + Set up VCS and a minimal Nix environment following ../reussir, including only required components.
@@ -16,7 +16,7 @@ Date: 2026-10-27. Status: implementation and validation complete; native Windows
 + Account for the database itself as well as external payloads. Trust recorded payload sizes; do not scan runtime trees for sizing.
 + Recover interrupted work where possible; report an error when recovery cannot safely complete.
 + Publish pruning/building states so readers cannot receive partially built or partially deleted runtimes.
-+ Prefer BLAKE3-256 wherever hashing is necessary.
++ Use BLAKE3-256 for persistent recipe identity. Use entropy-seeded rapidhash RandomState for in-memory indexing; never hardcode its seed.
 + Keep the in-memory path thread-safe and fast. Benchmark characteristics, record an initial baseline, and fix initial measured problems.
 + Use tracing for library diagnostics without excessive defensive machinery. Use typed thiserror errors with preserved causes instead of untyped error strings. The application installs a tracing subscriber.
 
@@ -30,11 +30,13 @@ Date: 2026-10-27. Status: implementation and validation complete; native Windows
 + Keep user key schemas separate from internal metadata such as byte size, last access, and hashed external-directory references. Either a foreign-key relation or extending the entry table is acceptable; the public schema need not match SQLite's physical schema.
 
 + Add whole-key serde serialization as an additional key constructor after discussion. Retain the borrowed-string field-schema API; serde supports complete nested recipes and shares the same opaque BLAKE3 key representation and physical metadata layout.
++ Treat Linux, Windows and macOS as first-class targets, matching Reussir. Native filesystem, lease and recovery behavior must meet the shared protocol on all three.
++ Add lightweight native CI for Windows and macOS alongside Linux. Keep benchmarks, stress and model checking outside routine CI.
 
 == Implementation choices
 These are implementation choices, distinct from the user requirements above.
 
-The initial platform is Linux, with a fail-closed local-filesystem allowlist. Known local filesystems include ext, XFS, Btrfs, ZFS, tmpfs, ramfs, and F2FS. Unknown filesystems and FUSE are rejected. Network-backed block devices and malicious mount changes are outside the guarantee; filesystem type cannot detect those.
+Linux was the first implementation; its completion does not complete the three-platform requirement. It uses a fail-closed local-filesystem allowlist. Known local filesystems include ext, XFS, Btrfs, ZFS, tmpfs, ramfs, and F2FS. Unknown filesystems and FUSE are rejected. Windows needs native local-volume validation, directory publication and lease conversion; macOS needs native locality and durability validation. Network-backed block devices and malicious mount changes are outside the guarantee; filesystem type cannot detect those.
 
 Keys are immutable BLAKE3-256 digests of a caller's domain-separated recipe (compiler version, target, inputs, flags). Callers must include every production input. Blob and directory keys use separate namespaces.
 
@@ -53,6 +55,7 @@ Directory producers report logical payload bytes, including all files they creat
 + Exercise concurrency, crash boundaries, deadline/accounting behavior, and configuration.
 + Benchmark memory hits, SQLite hits/writes, runtime leases, contention, and pruning. Fix measured regressions and record reproducible results.
 + Update this record with actual checks, limitations, and completed work.
++ Complete Windows and macOS backends and enable native storage/crash-recovery suites in CI as each backend is ready. Current CI checks portable behavior on those hosts and must not be reported as storage acceptance.
 
 == Progress
 The P model was authored before Rust cache implementation and checked with P 3.1.0. Git was initialized with main as its initial branch. The minimal Nix development and proof shells are functional. Core modules remain below 220 lines each after formatting, separating the builder, configuration, memory, directories, metadata queries, schema initialization, filesystem operations, pruning, recovery, and retry policy.

@@ -27,7 +27,11 @@ The filesystem retry policy starts at 2 ms, doubles to at most 64 ms, uses equal
 
 Windows error codes 32 (sharing violation), 33 (lock violation), 5 (possibly transient access denial), and 145 (directory not empty during removal) have explicit retry classification tests. A scanner-held or loaded DLL handle can prevent deletion/rename even after a compiler closes its own handle. The cache must keep Pruning durable and retry rather than advertise Missing or Ready while removal is partial. The library must not depend on disabling Defender. CreateFile delete-sharing flags and directory-handle semantics require native treatment; POSIX unlink behavior cannot be assumed on Windows.
 
-Initial supported execution remains 64-bit Linux. Windows opening returns UnsupportedPlatform pending native local-volume rejection, directory durability, and Windows integration testing. Retry classification is tested using injected Windows errors on Linux; this is not a claim that the runtime was tested on Windows. File sync and process-kill tests are not sufficient evidence of Windows power-loss-safe directory publication.
+Linux, Windows and macOS are required first-class execution targets. Current native storage implementation and validation cover 64-bit Linux; Windows and macOS opening still return UnsupportedPlatform. This is an implementation gap, not an optional platform extension. Portable native CI does not close the storage gap. Retry classification uses injected Windows errors and is not evidence of Windows runtime behavior. File sync and process-kill tests alone do not establish power-loss-safe directory publication.
+
+Use small platform modules for local-filesystem inspection, durable directory operations and lease transitions while retaining the shared synchronous SQLite state machine. On Windows, the current fs4 shared-lock call adds a shared lock on the existing exclusive handle; it does not release the exclusive lock. Implement an explicit transition and verify reader concurrency and pruning exclusion. Preserve row/reference revalidation if a transition releases ownership. Directory handles, delete sharing, loaded DLLs and scanner-held files need native tests.
+
+On macOS, validate local filesystem/mount properties and directory sync behavior, and establish the role of fsync versus F_FULLFSYNC in both produced output and SQLite publication. Do not silently weaken the producer contract or treat ignored directory flush errors as platform support. Native tests must cover retained readers, interrupted construction/deletion and recovery before storage support is claimed.
 
 == References
 #link("https://www.sqlite.org/wal.html")[SQLite WAL constraints and durability]
@@ -39,6 +43,10 @@ Initial supported execution remains 64-bit Linux. Windows opening returns Unsupp
 #link("https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea")[Microsoft CreateFile sharing and directory flags]
 
 #link("https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers")[Microsoft FlushFileBuffers access and flush contract]
+
+#link("https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex")[Microsoft shared/exclusive lock overlap and unlocking rules]
+
+#link("https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/fsync.2.html")[Apple fsync and F_FULLFSYNC guarantees]
 
 == Logical and physical schema
 The user-facing field names and borrowed values define identity only. The implementation extends one indexed SQLite entries table with kind, key digest, status, logical size, last access, optional blob payload, and optional object_key. A directory's object_key is committed in its Building row before construction; reads, deletion and recovery resolve the managed directory using that recorded reference rather than guessing from user fields. The initial object name is the recipe's BLAKE3-256 digest, but its physical reference is independently represented. Backend root identity is recorded separately in settings. SQLite schema version 2 migrates version 1 by setting directory references to the old key-based names without moving or scanning contents. Integration tests change a reference independently of the logical key and verify both reads and pruning follow metadata.
