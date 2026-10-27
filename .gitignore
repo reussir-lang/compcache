@@ -1,0 +1,10 @@
+/target/
+/.direnv/
+/.tools/
+/result
+/model/PGenerated/
+/model/PCheckerOutput/
+/agentic-plan/*.pdf
+*.db
+*.db-wal
+*.db-shm

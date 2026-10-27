@@ -1,0 +1,7 @@
+{
+  "operations": 50085,
+  "runtime_reads": 23425,
+  "blob_reads": 11860,
+  "pruned": 503,
+  "skipped_busy": 301
+}

@@ -1,0 +1,157 @@
+    Checking compcache v0.1.0 (/home/schrodingerzy/Documents/compcache)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.47s
+   Compiling cfg-if v1.0.5
+   Compiling once_cell v1.21.4
+   Compiling smallvec v1.16.4
+   Compiling regex-syntax v0.8.11
+   Compiling bitflags v2.13.2
+   Compiling foldhash v0.2.0
+   Compiling either v1.19.0
+   Compiling linux-raw-sys v0.12.1
+   Compiling memchr v2.8.3
+   Compiling scopeguard v1.2.0
+   Compiling itoa v1.0.18
+   Compiling pin-project-lite v0.2.17
+   Compiling libc v0.2.191
+   Compiling plotters-backend v0.3.7
+   Compiling clap_lex v1.1.1
+   Compiling anstyle v1.0.14
+   Compiling serde_core v1.0.229
+   Compiling crossbeam-utils v0.8.23
+   Compiling zmij v1.0.23
+   Compiling ciborium-io v0.2.2
+   Compiling fallible-iterator v0.3.0
+   Compiling log v0.4.34
+   Compiling equivalent v1.0.3
+   Compiling arrayvec v0.7.8
+   Compiling num-traits v0.2.19
+   Compiling cpufeatures v0.3.1
+   Compiling zerocopy v0.8.63
+   Compiling libsqlite3-sys v0.36.0
+   Compiling fallible-streaming-iterator v0.1.9
+   Compiling constant_time_eq v0.4.2
+   Compiling lazy_static v1.5.1
+   Compiling cast v0.3.0
+   Compiling same-file v1.0.6
+   Compiling lock_api v0.4.14
+   Compiling thiserror v2.0.21
+   Compiling thread_local v1.1.10
+   Compiling nu-ansi-term v0.50.3
+   Compiling sharded-slab v0.1.7
+   Compiling fastrand v2.5.0
+   Compiling hashbrown v0.16.1
+   Compiling walkdir v2.5.0
+   Compiling tracing-core v0.1.36
+   Compiling anes v0.1.6
+   Compiling oorandom v11.1.5
+   Compiling clap_builder v4.6.7
+   Compiling itertools v0.10.5
+   Compiling plotters-svg v0.3.7
+   Compiling blake3 v1.8.7
+   Compiling rustix v1.1.6
+   Compiling crossbeam-epoch v0.9.21
+   Compiling tracing v0.1.44
+   Compiling tracing-log v0.2.0
+   Compiling crossbeam-deque v0.8.8
+   Compiling plotters v0.3.7
+   Compiling rayon-core v1.13.0
+   Compiling hashlink v0.11.1
+   Compiling getrandom v0.3.4
+   Compiling parking_lot_core v0.9.12
+   Compiling getrandom v0.4.3
+   Compiling is-terminal v0.4.17
+   Compiling parking_lot v0.12.5
+   Compiling rusqlite v0.38.0
+   Compiling criterion-plot v0.5.0
+   Compiling rayon v1.12.0
+   Compiling regex-automata v0.4.18
+   Compiling clap v4.6.7
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.154
+   Compiling fs4 v0.13.1
+   Compiling tempfile v3.27.0
+   Compiling tinytemplate v1.2.1
+   Compiling matchers v0.2.0
+   Compiling regex v1.13.1
+   Compiling tracing-subscriber v0.3.23
+   Compiling half v2.7.1
+   Compiling ahash v0.8.12
+   Compiling quick_cache v0.6.24
+   Compiling ciborium-ll v0.2.2
+   Compiling ciborium v0.2.2
+   Compiling compcache v0.1.0 (/home/schrodingerzy/Documents/compcache)
+   Compiling criterion v0.5.1
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.36s
+     Running unittests src/lib.rs (target/debug/deps/compcache-e3e446b5ad57cfb5)
+
+running 3 tests
+test filesystem::tests::rejects_network_and_unknown_filesystems ... ok
+test backoff::tests::retries_scanner_sharing_violations_but_not_arbitrary_failures ... ok
+test backoff::tests::retry_budget_is_finite ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/maintenance.rs (target/debug/deps/maintenance-9935a5f667985ce3)
+
+running 8 tests
+test counted_writer_rejects_duplicate_and_escaping_paths ... ok
+test backend_root_cannot_silently_change_for_an_existing_store ... ok
+test irreparable_database_and_newer_schema_bail_out ... ok
+test deadline_is_strict_and_threshold_is_not_a_quota ... ok
+test access_touches_metadata_at_second_resolution_and_never_moves_backwards ... ok
+test deletion_failure_keeps_pruning_visible_until_recovery ... ok
+test recover_missing_ready_directory_and_retry_build ... ok
+test size_uses_metadata_plus_sqlite_lengths_without_double_counting_blobs ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/process.rs (target/debug/deps/process-381b67c26a734d22)
+
+running 4 tests
+test process_worker ... ignored
+test independent_processes_produce_blob_once ... ok
+test crash_during_build_recovers_without_exposing_partial_runtime ... ok
+test crash_before_or_during_deletion_resumes_pruning ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/store.rs (target/debug/deps/store-156bf81809594070)
+
+running 7 tests
+test invalid_config_is_a_typed_error_instead_of_a_panic ... ok
+test quickcache_enforces_weight_and_is_shared_safely ... ok
+test sqlite_blobs_persist_without_external_layer ... ok
+test producer_errors_preserve_their_type_and_allow_retry ... ok
+test parallel_runtime_production_is_deduplicated ... ok
+test ready_runtime_keeps_a_reader_lease_and_separate_namespace ... ok
+test parallel_handles_produce_a_blob_once ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/stress.rs (target/debug/deps/stress-8bc07802456f3394)
+
+running 2 tests
+test stress_worker ... ignored
+process 0: Report { operations: 8841, runtime_reads: 5919, blob_reads: 2922, pruned: 0, skipped_busy: 0 }
+process 1: Report { operations: 8707, runtime_reads: 5801, blob_reads: 2906, pruned: 0, skipped_busy: 0 }
+process 2: Report { operations: 8828, runtime_reads: 5873, blob_reads: 2955, pruned: 0, skipped_busy: 0 }
+process 3: Report { operations: 8866, runtime_reads: 5806, blob_reads: 3060, pruned: 0, skipped_busy: 0 }
+process 4: Report { operations: 7513, runtime_reads: 0, blob_reads: 0, pruned: 312, skipped_busy: 115 }
+process 5: Report { operations: 7519, runtime_reads: 0, blob_reads: 0, pruned: 166, skipped_busy: 135 }
+federated stress total (20s): Report { operations: 50274, runtime_reads: 23399, blob_reads: 11843, pruned: 478, skipped_busy: 250 }
+test six_processes_share_a_store_with_live_builds_readers_pruning_and_recovery ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 20.06s
+
+   Doc-tests compcache
+
+running 1 test
+test src/builder.rs - builder::StoreBuilder (line 8) - compile ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.40s; merged doctests compilation took 0.39s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running `target/debug/examples/basic /tmp/compcache-example`
+bytecode: 17 bytes
+runtime: /tmp/compcache-example/objects/33bbcaaf29dc5b32df0879f3c4709a181a3d3d3ce0e6d323eaa28c92c9e7602a

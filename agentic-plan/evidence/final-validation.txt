@@ -1,0 +1,93 @@
+    Checking compcache v0.1.0 (/home/schrodingerzy/Documents/compcache)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.69s
+   Compiling compcache v0.1.0 (/home/schrodingerzy/Documents/compcache)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.28s
+     Running unittests src/lib.rs (target/debug/deps/compcache-e3e446b5ad57cfb5)
+
+running 3 tests
+test filesystem::tests::rejects_network_and_unknown_filesystems ... ok
+test backoff::tests::retries_scanner_sharing_violations_but_not_arbitrary_failures ... ok
+test backoff::tests::retry_budget_is_finite ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/key.rs (target/debug/deps/key-ac91062b2bcc8f29)
+
+running 1 test
+test structured_keys_derive_their_schema_and_frame_fields_without_ambiguity ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/maintenance.rs (target/debug/deps/maintenance-9935a5f667985ce3)
+
+running 9 tests
+test counted_writer_rejects_duplicate_and_escaping_paths ... ok
+test backend_root_cannot_silently_change_for_an_existing_store ... ok
+test irreparable_database_and_newer_schema_bail_out ... ok
+test deadline_is_strict_and_threshold_is_not_a_quota ... ok
+test access_touches_metadata_at_second_resolution_and_never_moves_backwards ... ok
+test deletion_failure_keeps_pruning_visible_until_recovery ... ok
+test runtime_location_is_resolved_from_sqlite_metadata ... ok
+test size_uses_metadata_plus_sqlite_lengths_without_double_counting_blobs ... ok
+test recover_missing_ready_directory_and_retry_build ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/process.rs (target/debug/deps/process-381b67c26a734d22)
+
+running 4 tests
+test process_worker ... ignored
+test independent_processes_produce_blob_once ... ok
+test crash_during_build_recovers_without_exposing_partial_runtime ... ok
+test crash_before_or_during_deletion_resumes_pruning ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/schema.rs (target/debug/deps/schema-2bf6008102972b9a)
+
+running 1 test
+test migrates_v1_directories_without_renaming_or_scanning_them ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/store.rs (target/debug/deps/store-156bf81809594070)
+
+running 7 tests
+test invalid_config_is_a_typed_error_instead_of_a_panic ... ok
+test quickcache_enforces_weight_and_is_shared_safely ... ok
+test sqlite_blobs_persist_without_external_layer ... ok
+test producer_errors_preserve_their_type_and_allow_retry ... ok
+test ready_runtime_keeps_a_reader_lease_and_separate_namespace ... ok
+test parallel_runtime_production_is_deduplicated ... ok
+test parallel_handles_produce_a_blob_once ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/stress.rs (target/debug/deps/stress-8bc07802456f3394)
+
+running 2 tests
+test stress_worker ... ignored
+process 0: Report { operations: 8763, runtime_reads: 5871, blob_reads: 2892, pruned: 0, skipped_busy: 0 }
+process 1: Report { operations: 8709, runtime_reads: 5802, blob_reads: 2907, pruned: 0, skipped_busy: 0 }
+process 2: Report { operations: 8853, runtime_reads: 5892, blob_reads: 2961, pruned: 0, skipped_busy: 0 }
+process 3: Report { operations: 8960, runtime_reads: 5860, blob_reads: 3100, pruned: 0, skipped_busy: 0 }
+process 4: Report { operations: 7571, runtime_reads: 0, blob_reads: 0, pruned: 374, skipped_busy: 169 }
+process 5: Report { operations: 7229, runtime_reads: 0, blob_reads: 0, pruned: 129, skipped_busy: 132 }
+federated stress total (20s): Report { operations: 50085, runtime_reads: 23425, blob_reads: 11860, pruned: 503, skipped_busy: 301 }
+test six_processes_share_a_store_with_live_builds_readers_pruning_and_recovery ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 20.05s
+
+   Doc-tests compcache
+
+running 2 tests
+test src/builder.rs - builder::StoreBuilder (line 8) - compile ... ok
+test src/key.rs - key::SchemaKey (line 5) ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.34s; merged doctests compilation took 0.34s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.09s
+     Running `target/debug/examples/basic /tmp/compcache-example`
+bytecode: 17 bytes
+runtime: /tmp/compcache-example/objects/66ebe09014fa73aaf9b627a7b91e690182ca486094f32295b35016a8a7371b9f

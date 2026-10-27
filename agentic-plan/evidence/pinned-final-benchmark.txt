@@ -1,0 +1,137 @@
+   Compiling compcache v0.1.0 (/home/schrodingerzy/Documents/compcache)
+    Finished `bench` profile [optimized] target(s) in 2.02s
+     Running benches/cache.rs (target/release/deps/cache-0a61c041200da79e)
+Gnuplot not found, using plotters backend
+Benchmarking warm_blob/64
+Benchmarking warm_blob/64: Warming up for 1.0000 s
+Benchmarking warm_blob/64: Collecting 30 samples in estimated 2.0000 s (18M iterations)
+Benchmarking warm_blob/64: Analyzing
+warm_blob/64            time:   [105.13 ns 105.61 ns 106.30 ns]
+                        change: [-0.5100% +0.0522% +0.7306%] (p = 0.87 > 0.05)
+                        No change in performance detected.
+Found 6 outliers among 30 measurements (20.00%)
+  3 (10.00%) high mild
+  3 (10.00%) high severe
+Benchmarking warm_blob/4096
+Benchmarking warm_blob/4096: Warming up for 1.0000 s
+Benchmarking warm_blob/4096: Collecting 30 samples in estimated 2.0000 s (19M iterations)
+Benchmarking warm_blob/4096: Analyzing
+warm_blob/4096          time:   [105.05 ns 105.49 ns 106.04 ns]
+                        change: [-0.6691% -0.1646% +0.3750%] (p = 0.56 > 0.05)
+                        No change in performance detected.
+Found 7 outliers among 30 measurements (23.33%)
+  3 (10.00%) high mild
+  4 (13.33%) high severe
+Benchmarking warm_blob/262144
+Benchmarking warm_blob/262144: Warming up for 1.0000 s
+Benchmarking warm_blob/262144: Collecting 30 samples in estimated 2.0000 s (19M iterations)
+Benchmarking warm_blob/262144: Analyzing
+warm_blob/262144        time:   [105.12 ns 105.67 ns 106.41 ns]
+                        change: [-0.4202% +0.1556% +0.7291%] (p = 0.62 > 0.05)
+                        No change in performance detected.
+Found 3 outliers among 30 measurements (10.00%)
+  2 (6.67%) high mild
+  1 (3.33%) high severe
+
+Benchmarking sqlite_hit_4k
+Benchmarking sqlite_hit_4k: Warming up for 1.0000 s
+Benchmarking sqlite_hit_4k: Collecting 30 samples in estimated 2.0015 s (480k iterations)
+Benchmarking sqlite_hit_4k: Analyzing
+sqlite_hit_4k           time:   [4.1320 µs 4.1574 µs 4.1859 µs]
+                        change: [+0.4463% +1.1153% +1.7804%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 6 outliers among 30 measurements (20.00%)
+  2 (6.67%) high mild
+  4 (13.33%) high severe
+
+Benchmarking sqlite_insert_4k
+Benchmarking sqlite_insert_4k: Warming up for 1.0000 s
+Benchmarking sqlite_insert_4k: Collecting 30 samples in estimated 2.2395 s (3720 iterations)
+Benchmarking sqlite_insert_4k: Analyzing
+sqlite_insert_4k        time:   [571.07 µs 581.97 µs 593.32 µs]
+                        change: [-23.278% -19.402% -15.013%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 3 outliers among 30 measurements (10.00%)
+  2 (6.67%) low mild
+  1 (3.33%) high mild
+
+Benchmarking schema_key_4_fields
+Benchmarking schema_key_4_fields: Warming up for 1.0000 s
+Benchmarking schema_key_4_fields: Collecting 30 samples in estimated 2.0001 s (4.1M iterations)
+Benchmarking schema_key_4_fields: Analyzing
+schema_key_4_fields     time:   [479.47 ns 480.42 ns 481.39 ns]
+                        change: [-0.3220% +0.0134% +0.3211%] (p = 0.94 > 0.05)
+                        No change in performance detected.
+
+Benchmarking quickcache_hit_4k
+Benchmarking quickcache_hit_4k: Warming up for 1.0000 s
+Benchmarking quickcache_hit_4k: Collecting 30 samples in estimated 2.0000 s (53M iterations)
+Benchmarking quickcache_hit_4k: Analyzing
+quickcache_hit_4k       time:   [37.494 ns 37.539 ns 37.581 ns]
+                        change: [-0.7024% -0.2840% +0.0632%] (p = 0.17 > 0.05)
+                        No change in performance detected.
+
+Benchmarking quickcache_miss
+Benchmarking quickcache_miss: Warming up for 1.0000 s
+Benchmarking quickcache_miss: Collecting 30 samples in estimated 2.0000 s (56M iterations)
+Benchmarking quickcache_miss: Analyzing
+quickcache_miss         time:   [25.000 ns 26.066 ns 27.821 ns]
+                        change: [-3.3390% +5.6873% +16.328%] (p = 0.25 > 0.05)
+                        No change in performance detected.
+
+Benchmarking shared_store/1
+Benchmarking shared_store/1: Warming up for 1.0000 s
+Benchmarking shared_store/1: Collecting 30 samples in estimated 2.0000 s (12M iterations)
+Benchmarking shared_store/1: Analyzing
+shared_store/1          time:   [107.12 ns 110.39 ns 117.60 ns]
+                        thrpt:  [8.5036 Melem/s 9.0587 Melem/s 9.3353 Melem/s]
+                 change:
+                        time:   [-35.487% -29.825% -24.133%] (p = 0.00 < 0.05)
+                        thrpt:  [+31.810% +42.502% +55.009%]
+                        Performance has improved.
+Found 3 outliers among 30 measurements (10.00%)
+  1 (3.33%) high mild
+  2 (6.67%) high severe
+Benchmarking shared_store/4
+Benchmarking shared_store/4: Warming up for 1.0000 s
+Benchmarking shared_store/4: Collecting 30 samples in estimated 2.0000 s (12M iterations)
+Benchmarking shared_store/4: Analyzing
+shared_store/4          time:   [131.46 ns 143.43 ns 169.74 ns]
+                        thrpt:  [23.565 Melem/s 27.888 Melem/s 30.427 Melem/s]
+                 change:
+                        time:   [-39.346% -15.452% +11.770%] (p = 0.49 > 0.05)
+                        thrpt:  [-10.530% +18.276% +64.871%]
+                        No change in performance detected.
+Found 7 outliers among 30 measurements (23.33%)
+  3 (10.00%) high mild
+  4 (13.33%) high severe
+Benchmarking shared_store/16
+Benchmarking shared_store/16: Warming up for 1.0000 s
+Benchmarking shared_store/16: Collecting 30 samples in estimated 2.0000 s (4.1M iterations)
+Benchmarking shared_store/16: Analyzing
+shared_store/16         time:   [208.53 ns 391.10 ns 695.46 ns]
+                        thrpt:  [23.006 Melem/s 40.910 Melem/s 76.729 Melem/s]
+                 change:
+                        time:   [-76.226% -27.806% +123.37%] (p = 0.62 > 0.05)
+                        thrpt:  [-55.231% +38.517% +320.62%]
+                        No change in performance detected.
+Found 2 outliers among 30 measurements (6.67%)
+  2 (6.67%) high severe
+
+Benchmarking runtime_reader_lease
+Benchmarking runtime_reader_lease: Warming up for 1.0000 s
+Benchmarking runtime_reader_lease: Collecting 30 samples in estimated 2.0017 s (323k iterations)
+Benchmarking runtime_reader_lease: Analyzing
+runtime_reader_lease    time:   [6.1796 µs 6.2140 µs 6.2521 µs]
+                        change: [+3.3593% +3.9985% +4.6091%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+
+Benchmarking prune_100_directories
+Benchmarking prune_100_directories: Warming up for 1.0000 s
+
+Warning: Unable to complete 30 samples in 2.0s. You may wish to increase target time to 6.8s, or reduce sample count to 10.
+Benchmarking prune_100_directories: Collecting 30 samples in estimated 6.7539 s (30 iterations)
+Benchmarking prune_100_directories: Analyzing
+prune_100_directories   time:   [104.85 ms 107.99 ms 110.97 ms]
+                        change: [-2.3976% +1.1923% +4.3684%] (p = 0.50 > 0.05)
+                        No change in performance detected.

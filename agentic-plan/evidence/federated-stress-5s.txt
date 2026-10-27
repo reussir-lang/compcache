@@ -1,0 +1,16 @@
+   Compiling compcache v0.1.0 (/home/schrodingerzy/Documents/compcache)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.54s
+     Running tests/stress.rs (target/debug/build/compcache/fbdcaa65fe0df1da/out/stress-fbdcaa65fe0df1da)
+
+running 2 tests
+test stress_worker ... ignored
+process 0: Report { operations: 2081, runtime_reads: 1361, blob_reads: 720, pruned: 0, skipped_busy: 0 }
+process 1: Report { operations: 2009, runtime_reads: 1340, blob_reads: 669, pruned: 0, skipped_busy: 0 }
+process 2: Report { operations: 2166, runtime_reads: 1476, blob_reads: 690, pruned: 0, skipped_busy: 0 }
+process 3: Report { operations: 2269, runtime_reads: 1470, blob_reads: 799, pruned: 0, skipped_busy: 0 }
+process 4: Report { operations: 1914, runtime_reads: 0, blob_reads: 0, pruned: 57, skipped_busy: 27 }
+process 5: Report { operations: 1833, runtime_reads: 0, blob_reads: 0, pruned: 35, skipped_busy: 20 }
+federated stress total (5s): Report { operations: 12272, runtime_reads: 5647, blob_reads: 2878, pruned: 92, skipped_busy: 47 }
+test six_processes_share_a_store_with_live_builds_readers_pruning_and_recovery ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.10s

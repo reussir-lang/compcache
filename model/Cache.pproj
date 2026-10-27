@@ -1,0 +1,5 @@
+<Project>
+  <ProjectName>Cache</ProjectName>
+  <InputFiles><PFile>./Cache.p</PFile></InputFiles>
+  <OutputDir>./PGenerated/</OutputDir>
+</Project>

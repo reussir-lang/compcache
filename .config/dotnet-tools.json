@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "p": { "version": "3.1.0", "commands": ["p"] }
+  }
+}

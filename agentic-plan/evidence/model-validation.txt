@@ -1,0 +1,161 @@
+building '/nix/store/rri8zamf7hzakasyg17b7xjn6pjh4yn1-nix-shell-env.drv'...
+Tool 'p' (version '3.1.0') was restored. Available commands: p
+
+Restore was successful.
+.. Searching for a P project file *.pproj locally in the current folder
+.. Found P project file: /home/schrodingerzy/Documents/compcache/model/Cache.pproj
+----------------------------------------
+==== Loading project file: /home/schrodingerzy/Documents/compcache/model/Cache.pproj
+....... includes p file: /home/schrodingerzy/Documents/compcache/model/Cache.p
+----------------------------------------
+Parsing ...
+Type checking ...
+----------------------------------------
+Code generation for PChecker...
+Generated Cache.cs.
+Compiling generated code...
+Reusing existing /home/schrodingerzy/Documents/compcache/model/PGenerated/PChecker/Test.cs
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Cache -> /home/schrodingerzy/Documents/compcache/model/PGenerated/PChecker/net8.0/Cache.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.53
+
+
+----------------------------------------
+Compilation succeeded.
+~~ [PTool]: Thanks for using P! ~~
+.. Searching for a P project file *.pproj locally in the current folder
+.. Found P project file: /home/schrodingerzy/Documents/compcache/model/Cache.pproj
+.. Searching for a P compiled file locally in folder ./PGenerated/
+.. Found a P compiled file: ./PGenerated/PChecker/net8.0/Cache.dll
+.. Checking ./PGenerated/PChecker/net8.0/Cache.dll
+.. Running test cases with prefix 'tcSafety':
+tcSafety
+.. Test case :: tcSafety
+... Checker is using 'random' strategy (seed:1729).
+..... Schedule #1
+..... Schedule #2
+..... Schedule #3
+..... Schedule #4
+..... Schedule #5
+..... Schedule #6
+..... Schedule #7
+..... Schedule #8
+..... Schedule #9
+..... Schedule #10
+..... Schedule #20
+..... Schedule #30
+..... Schedule #40
+..... Schedule #50
+..... Schedule #60
+..... Schedule #70
+..... Schedule #80
+..... Schedule #90
+..... Schedule #100
+..... Schedule #200
+..... Schedule #300
+..... Schedule #400
+..... Schedule #500
+..... Schedule #600
+..... Schedule #700
+..... Schedule #800
+..... Schedule #900
+..... Schedule #1000
+..... Schedule #2000
+..... Schedule #3000
+..... Schedule #4000
+..... Schedule #5000
+..... Schedule #6000
+..... Schedule #7000
+..... Schedule #8000
+..... Schedule #9000
+..... Schedule #10000
+... Emitting coverage report:
+..... Writing PCheckerOutput/BugFinding/Cache.coverage.txt
+..... Writing PCheckerOutput/BugFinding/Cache.sci
+... Checking statistics:
+..... Found 0 bugs.
+... Scheduling statistics:
+..... Explored 10000 schedules
+..... Explored 1 timeline
+..... Number of scheduling points in terminating schedules: 246 (min), 247 (avg), 256 (max).
+..... Writing PCheckerOutput/BugFinding/Cache_pchecker_summary.txt
+... Elapsed 22.3457917 sec.
+. Done
+~~ [PTool]: Thanks for using P! ~~
+.. Searching for a P project file *.pproj locally in the current folder
+.. Found P project file: /home/schrodingerzy/Documents/compcache/model/Cache.pproj
+.. Searching for a P compiled file locally in folder ./PGenerated/
+.. Found a P compiled file: ./PGenerated/PChecker/net8.0/Cache.dll
+.. Checking ./PGenerated/PChecker/net8.0/Cache.dll
+.. Running test cases with prefix 'tcRecovery':
+tcRecovery
+.. Test case :: tcRecovery
+... Checker is using 'random' strategy (seed:1729).
+..... Schedule #1
+..... Schedule #2
+..... Schedule #3
+..... Schedule #4
+..... Schedule #5
+..... Schedule #6
+..... Schedule #7
+..... Schedule #8
+..... Schedule #9
+..... Schedule #10
+..... Schedule #20
+..... Schedule #30
+..... Schedule #40
+..... Schedule #50
+..... Schedule #60
+..... Schedule #70
+..... Schedule #80
+..... Schedule #90
+..... Schedule #100
+... Emitting coverage report:
+..... Writing PCheckerOutput/BugFinding/Cache.coverage.txt
+..... Writing PCheckerOutput/BugFinding/Cache.sci
+... Checking statistics:
+..... Found 0 bugs.
+... Scheduling statistics:
+..... Explored 100 schedules
+..... Explored 1 timeline
+..... Number of scheduling points in terminating schedules: 6 (min), 6 (avg), 6 (max).
+..... Writing PCheckerOutput/BugFinding/Cache_pchecker_summary.txt
+... Elapsed 0.1657509 sec.
+. Done
+~~ [PTool]: Thanks for using P! ~~
+.. Searching for a P project file *.pproj locally in the current folder
+.. Found P project file: /home/schrodingerzy/Documents/compcache/model/Cache.pproj
+.. Searching for a P compiled file locally in folder ./PGenerated/
+.. Found a P compiled file: ./PGenerated/PChecker/net8.0/Cache.dll
+.. Checking ./PGenerated/PChecker/net8.0/Cache.dll
+.. Running test cases with prefix 'tcUnsafePrune':
+tcUnsafePrune
+.. Test case :: tcUnsafePrune
+... Checker is using 'random' strategy (seed:1729).
+..... Schedule #1
+Checker found a bug.
+... Emitting traces:
+..... Writing PCheckerOutput/BugFinding/Cache_0_0.txt
+..... Writing PCheckerOutput/BugFinding/Cache_0_0.trace.json
+..... Writing PCheckerOutput/BugFinding/Cache_0_0.schedule
+... Elapsed 0.11 sec and used 0 GB.
+... Emitting coverage report:
+..... Writing PCheckerOutput/BugFinding/Cache.coverage.txt
+..... Writing PCheckerOutput/BugFinding/Cache.sci
+... Checking statistics:
+..... Found 1 bug.
+... Scheduling statistics:
+..... Explored 1 schedule
+..... Explored 1 timeline
+..... Found 100.00% buggy schedules.
+..... Number of scheduling points in terminating schedules: 228 (min), 228 (avg), 228 (max).
+..... Writing PCheckerOutput/BugFinding/Cache_pchecker_summary.txt
+... Elapsed 0.167484 sec.
+. Done
+~~ [PTool]: Thanks for using P! ~~

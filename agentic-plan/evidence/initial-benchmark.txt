@@ -1,0 +1,131 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling cfg-if v1.0.5
+   Compiling libc v0.2.191
+   Compiling zerocopy v0.8.63
+   Compiling once_cell v1.21.4
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.15
+   Compiling serde_core v1.0.229
+   Compiling crossbeam-utils v0.8.23
+   Compiling smallvec v1.16.4
+   Compiling crossbeam-epoch v0.9.21
+   Compiling serde v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.154
+   Compiling crossbeam-deque v0.8.8
+   Compiling getrandom v0.3.4
+   Compiling parking_lot_core v0.9.12
+   Compiling version_check v0.9.5
+   Compiling rustix v1.1.6
+   Compiling bitflags v2.13.2
+   Compiling pkg-config v0.3.34
+   Compiling regex-syntax v0.8.11
+   Compiling autocfg v1.5.1
+   Compiling foldhash v0.2.0
+   Compiling vcpkg v0.2.15
+   Compiling rayon-core v1.13.0
+   Compiling either v1.19.0
+   Compiling itoa v1.0.18
+   Compiling scopeguard v1.2.0
+   Compiling memchr v2.8.3
+   Compiling linux-raw-sys v0.12.1
+   Compiling ciborium-io v0.2.2
+   Compiling lock_api v0.4.14
+   Compiling pin-project-lite v0.2.17
+   Compiling cc v1.10.0
+   Compiling hashbrown v0.16.1
+   Compiling plotters-backend v0.3.7
+   Compiling getrandom v0.4.3
+   Compiling clap_lex v1.1.1
+   Compiling anstyle v1.0.14
+   Compiling thiserror v2.0.21
+   Compiling tracing-core v0.1.36
+   Compiling same-file v1.0.6
+   Compiling lazy_static v1.5.1
+   Compiling cast v0.3.0
+   Compiling itertools v0.10.5
+   Compiling cpufeatures v0.3.1
+   Compiling arrayvec v0.7.8
+   Compiling ahash v0.8.12
+   Compiling fallible-streaming-iterator v0.1.9
+   Compiling fallible-iterator v0.3.0
+   Compiling log v0.4.34
+   Compiling equivalent v1.0.3
+   Compiling constant_time_eq v0.4.2
+   Compiling sharded-slab v0.1.7
+   Compiling walkdir v2.5.0
+   Compiling thread_local v1.1.10
+   Compiling oorandom v11.1.5
+   Compiling fastrand v2.5.0
+   Compiling clap_builder v4.6.7
+   Compiling num-traits v0.2.19
+   Compiling nu-ansi-term v0.50.3
+   Compiling plotters-svg v0.3.7
+   Compiling anes v0.1.6
+   Compiling tracing-log v0.2.0
+   Compiling syn v2.0.119
+   Compiling syn v3.0.9
+   Compiling hashlink v0.11.1
+   Compiling plotters v0.3.7
+   Compiling libsqlite3-sys v0.36.0
+   Compiling blake3 v1.8.7
+   Compiling is-terminal v0.4.17
+   Compiling regex-automata v0.4.18
+   Compiling parking_lot v0.12.5
+   Compiling rayon v1.12.0
+   Compiling criterion-plot v0.5.0
+   Compiling fs4 v0.13.1
+   Compiling tempfile v3.27.0
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.21
+   Compiling clap v4.6.7
+   Compiling zerocopy-derive v0.8.63
+   Compiling tracing-attributes v0.1.31
+   Compiling matchers v0.2.0
+   Compiling regex v1.13.1
+   Compiling tracing v0.1.44
+   Compiling tracing-subscriber v0.3.23
+   Compiling tinytemplate v1.2.1
+   Compiling half v2.7.1
+   Compiling quick_cache v0.6.24
+   Compiling ciborium-ll v0.2.2
+   Compiling ciborium v0.2.2
+   Compiling criterion v0.5.1
+   Compiling rusqlite v0.38.0
+   Compiling compcache v0.1.0 (/home/schrodingerzy/Documents/compcache)
+warning: method `touched` is never used
+  --> src/memory.rs:13:19
+   |
+11 | impl MemoryEntry {
+   | ---------------- method in this implementation
+12 |     pub fn new(bytes: Arc<[u8]>, touched: i64) -> Self { Self { bytes, touched: AtomicI64::new(touched) } }
+13 |     pub(crate) fn touched(&self) -> i64 { self.touched.load(Ordering::Relaxed) }
+   |                   ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `compcache` (lib) generated 1 warning
+    Finished `bench` profile [optimized] target(s) in 33.23s
+     Running benches/cache.rs (target/release/build/compcache/c848fc89060a9981/out/cache-c848fc89060a9981)
+Gnuplot not found, using plotters backend
+Benchmarking warm_blob/64
+Benchmarking warm_blob/64: Warming up for 1.0000 s
+Benchmarking warm_blob/64: Collecting 30 samples in estimated 2.0263 s (6045 iterations)
+Benchmarking warm_blob/64: Analyzing
+warm_blob/64            time:   [280.39 µs 284.00 µs 288.21 µs]
+Found 2 outliers among 30 measurements (6.67%)
+  2 (6.67%) high mild
+Benchmarking warm_blob/4096
+Benchmarking warm_blob/4096: Warming up for 1.0000 s
+Benchmarking warm_blob/4096: Collecting 30 samples in estimated 2.0342 s (6975 iterations)
+Benchmarking warm_blob/4096: Analyzing
+warm_blob/4096          time:   [288.28 µs 293.47 µs 299.99 µs]
+Found 1 outliers among 30 measurements (3.33%)
+  1 (3.33%) high mild
+Benchmarking warm_blob/262144
+Benchmarking warm_blob/262144: Warming up for 1.0000 s
+Benchmarking warm_blob/262144: Collecting 30 samples in estimated 2.2086 s (4185 iterations)
+Benchmarking warm_blob/262144: Analyzing
+warm_blob/262144        time:   [531.46 µs 559.80 µs 593.78 µs]
