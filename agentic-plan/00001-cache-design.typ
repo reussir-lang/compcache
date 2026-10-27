@@ -2,7 +2,7 @@
 #set page(paper: "a4", margin: 22mm)
 #set text(size: 10pt)
 = Compcache: decisions and execution record
-Date: 2026-10-27. Status: native Linux, Windows and macOS storage, strict Clippy and multiprocess qualification pass on all three hosted targets.
+Date: 2026-10-27. Status: implementation and validation complete; native Windows execution remains future platform work.
 
 == User decisions
 + Set up VCS and a minimal Nix environment following ../reussir, including only required components.
@@ -16,7 +16,7 @@ Date: 2026-10-27. Status: native Linux, Windows and macOS storage, strict Clippy
 + Account for the database itself as well as external payloads. Trust recorded payload sizes; do not scan runtime trees for sizing.
 + Recover interrupted work where possible; report an error when recovery cannot safely complete.
 + Publish pruning/building states so readers cannot receive partially built or partially deleted runtimes.
-+ Use BLAKE3-256 for persistent recipe identity. Use entropy-seeded rapidhash RandomState for in-memory indexing; never hardcode its seed.
++ Prefer BLAKE3-256 wherever hashing is necessary.
 + Keep the in-memory path thread-safe and fast. Benchmark characteristics, record an initial baseline, and fix initial measured problems.
 + Use tracing for library diagnostics without excessive defensive machinery. Use typed thiserror errors with preserved causes instead of untyped error strings. The application installs a tracing subscriber.
 
@@ -30,13 +30,11 @@ Date: 2026-10-27. Status: native Linux, Windows and macOS storage, strict Clippy
 + Keep user key schemas separate from internal metadata such as byte size, last access, and hashed external-directory references. Either a foreign-key relation or extending the entry table is acceptable; the public schema need not match SQLite's physical schema.
 
 + Add whole-key serde serialization as an additional key constructor after discussion. Retain the borrowed-string field-schema API; serde supports complete nested recipes and shares the same opaque BLAKE3 key representation and physical metadata layout.
-+ Treat Linux, Windows and macOS as first-class targets, matching Reussir. Native filesystem, lease and recovery behavior must meet the shared protocol on all three.
-+ Add lightweight native CI for Windows and macOS alongside Linux. Keep benchmarks, stress and model checking outside routine CI.
 
 == Implementation choices
 These are implementation choices, distinct from the user requirements above.
 
-Linux was the first implementation. It uses a fail-closed local-filesystem allowlist. Known local filesystems include ext, XFS, Btrfs, ZFS, tmpfs, ramfs, and F2FS. Unknown filesystems and FUSE are rejected. Windows implements local NTFS volume validation, writable directory flushing and explicit shared-lock retention when releasing its writer lock. macOS implements local APFS/HFS+ validation and uses full-sync operations for output and SQLite. Network-backed block devices and malicious mount changes are outside the guarantee; filesystem type cannot detect those.
+The initial platform is Linux, with a fail-closed local-filesystem allowlist. Known local filesystems include ext, XFS, Btrfs, ZFS, tmpfs, ramfs, and F2FS. Unknown filesystems and FUSE are rejected. Network-backed block devices and malicious mount changes are outside the guarantee; filesystem type cannot detect those.
 
 Keys are immutable BLAKE3-256 digests of a caller's domain-separated recipe (compiler version, target, inputs, flags). Callers must include every production input. Blob and directory keys use separate namespaces.
 
@@ -55,11 +53,8 @@ Directory producers report logical payload bytes, including all files they creat
 + Exercise concurrency, crash boundaries, deadline/accounting behavior, and configuration.
 + Benchmark memory hits, SQLite hits/writes, runtime leases, contention, and pruning. Fix measured regressions and record reproducible results.
 + Update this record with actual checks, limitations, and completed work.
-+ Complete Windows and macOS backends and enable native storage/crash-recovery suites in CI as each backend is ready. Current CI checks portable behavior on those hosts and must not be reported as storage acceptance.
 
 == Progress
-Native platform work is implemented and qualified at commit f43c6b3: hosted run 40592018954 passes all-target compilation, pedantic/nursery Clippy with warnings denied, defaults/key/documentation/storage/schema/process-recovery tests and ten seconds of six-process stress on Linux, Windows and macOS. Windows held-file and loaded-DLL pruning/recovery tests also pass. Production scope is the documented local filesystem/producer contract; physical power-cut testing is not claimed.
-
 The P model was authored before Rust cache implementation and checked with P 3.1.0. Git was initialized with main as its initial branch. The minimal Nix development and proof shells are functional. Core modules remain below 220 lines each after formatting, separating the builder, configuration, memory, directories, metadata queries, schema initialization, filesystem operations, pruning, recovery, and retry policy.
 
 The builder returns `Store<I, D>` with concrete strategy types. InMemoryCache.from_config receives MemoryConfig; ExtraOnDiskData.from_config receives the managed root and DiskConfig and may return no backend. Bypass and NoExtraData select the corresponding omissions.
@@ -74,3 +69,11 @@ Two measured performance issues were fixed: hot-memory accesses no longer rewrit
 P safety: 10,000 schedules, seed 1729, 60 nondeterministic operations per schedule, two modeled processes, no violations. Recovery progress: 100 schedules, no violations. Negative control: unsafe pruning while readers hold leases fails on schedule 1 with the expected visibility assertion. Five-second six-process stress: 12,272 operations, 5,647 runtime reads, 2,878 blob reads, 92 pruned entries, 47 busy candidates skipped; all payload checks passed. A longer final run is recorded in the subsequent progress record.
 
  A P model is an abstraction, not a proof of Rust, SQLite, or filesystem implementations. Bounded scheduling checks must be reported as bounded checks, never as an exhaustive proof.
+
+== 2026-10-27: First-class platform and hashing requirements
+Linux, Windows and macOS are first-class targets, matching Reussir. The Linux-only initial implementation does not satisfy the full requirement. Native filesystem, lease and recovery behavior must meet the same synchronous protocol on all three. Add lightweight native CI, with benchmarks, stress and model checking outside routine runs.
+
+The earlier preference for BLAKE3 everywhere is refined: persistent recipe identity remains BLAKE3-256; in-memory indexing uses entropy-seeded rapidhash RandomState without a hardcoded seed.
+
+== 2026-10-27: Native storage qualification
+Native platform work is implemented and qualified at commit f43c6b3: hosted run 40592018954 passes all-target compilation, pedantic/nursery Clippy with warnings denied, defaults/key/documentation/storage/schema/process-recovery tests and ten seconds of six-process stress on Linux, Windows and macOS. Windows held-file and loaded-DLL pruning/recovery tests also pass. At this qualification, filesystem-name allowlists accept the documented Linux types, Windows NTFS and macOS APFS/HFS+. Physical power-cut testing is not claimed.

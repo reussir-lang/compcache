@@ -2,7 +2,7 @@
 #set page(paper: "a4", margin: 22mm)
 #set text(size: 10pt)
 = Native storage qualification and strict Clippy
-Date: 2026-10-27. Status: native storage and strict Clippy qualified on all three targets.
+Date: 2026-10-27. Status: native backends implemented; hosted qualification in progress.
 
 == Supported scope
 Provide production storage on the documented local Linux filesystems, local NTFS on Windows, and local APFS/HFS+ on macOS. Require cooperating processes, a private cache root, complete immutable producer output and storage honoring the operating system's flush/lock operations. Unsupported or remote storage is rejected; no flush failure is converted to success. Physical power-cut experiments are outside the hosted process-crash tests.
@@ -27,4 +27,5 @@ Use checked conversions for SQLite payload lengths, retention intervals and test
 == Verification
 Linux formatting, strict all-target Clippy, the full test suite including Nickel and short six-process stress, and actionlint pass locally. Routine CI stays light; a manual stress=true workflow input adds ten seconds of multiprocess stress per native runner. Record hosted native results after qualification completes.
 
+== 2026-10-27: Hosted qualification completed
 #link("https://github.com/reussir-lang/compcache/actions/runs/40592018954")[Final native qualification run 40592018954], commit f43c6b3, passes on all three native runners. Pedantic/nursery Clippy, defaults unit tests, key compatibility, documentation, native storage/migration/crash recovery and ten seconds of six-process stress all complete successfully. Windows also passes both held-file and loaded-DLL tests. Total job durations including setup/cache handling: Ubuntu 74 seconds, macOS 53 seconds, Windows 111 seconds. Public API documentation builds locally with warnings denied. Earlier failed attempts remain historical diagnostics; the passing qualification uses the corrected code.

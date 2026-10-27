@@ -27,11 +27,7 @@ The filesystem retry policy starts at 2 ms, doubles to at most 64 ms, uses equal
 
 Windows error codes 32 (sharing violation), 33 (lock violation), 5 (possibly transient access denial), and 145 (directory not empty during removal) have explicit retry classification tests. A scanner-held or loaded DLL handle can prevent deletion/rename even after a compiler closes its own handle. The cache must keep Pruning durable and retry rather than advertise Missing or Ready while removal is partial. The library must not depend on disabling Defender. CreateFile delete-sharing flags and directory-handle semantics require native treatment; POSIX unlink behavior cannot be assumed on Windows.
 
-Linux, Windows and macOS are first-class execution targets with native storage implementations and passing lifecycle/recovery tests. Local NTFS on Windows and local APFS/HFS+ on macOS join the existing 64-bit Linux allowlist. Hosted run 40592018954 qualifies native storage and strict Clippy on all three, including ten seconds of multiprocess stress. Windows also exercises held files and a loaded DLL. File sync and process-kill tests alone do not establish power-loss-safe directory publication.
-
-Small platform modules implement local-filesystem inspection while retaining the shared synchronous SQLite state machine. Windows opens writable directory handles with backup semantics for flushing. Its writer-to-reader transition first acquires the overlapping shared lock and then explicitly unlocks the exclusive portion, retaining the reader lease. Unix conversion keeps row/reference revalidation in case ownership was released. Native tests verify reader concurrency, pruning exclusion, delete-sharing failures and loaded-DLL recovery.
-
-On macOS, fstatfs locality flags and filesystem names reject remote/unvalidated mounts. The pinned standard library uses F_FULLFSYNC for sync_all; SQLite enables fullfsync and checkpoint_fullfsync. No directory flush error is ignored. Retained readers, interrupted construction/deletion, migration and recovery pass on the native runner under the shared producer contract.
+Initial supported execution remains 64-bit Linux. Windows opening returns UnsupportedPlatform pending native local-volume rejection, directory durability, and Windows integration testing. Retry classification is tested using injected Windows errors on Linux; this is not a claim that the runtime was tested on Windows. File sync and process-kill tests are not sufficient evidence of Windows power-loss-safe directory publication.
 
 == References
 #link("https://www.sqlite.org/wal.html")[SQLite WAL constraints and durability]
@@ -44,9 +40,19 @@ On macOS, fstatfs locality flags and filesystem names reject remote/unvalidated 
 
 #link("https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers")[Microsoft FlushFileBuffers access and flush contract]
 
+== Logical and physical schema
+The user-facing field names and borrowed values define identity only. The implementation extends one indexed SQLite entries table with kind, key digest, status, logical size, last access, optional blob payload, and optional object_key. A directory's object_key is committed in its Building row before construction; reads, deletion and recovery resolve the managed directory using that recorded reference rather than guessing from user fields. The initial object name is the recipe's BLAKE3-256 digest, but its physical reference is independently represented. Backend root identity is recorded separately in settings. SQLite schema version 2 migrates version 1 by setting directory references to the old key-based names without moving or scanning contents. Integration tests change a reference independently of the logical key and verify both reads and pruning follow metadata.
+
+== 2026-10-27: First-class native platform requirement
+Windows and macOS storage support is required alongside Linux. Portable compilation alone does not establish native storage correctness. Native work must cover filesystem locality, directory flushes, reader/writer lease conversion, interrupted construction/deletion and recovery.
+
+== 2026-10-27: Native implementation and qualification
+Hosted run 40592018954 at commit f43c6b3 qualifies native storage and strict Clippy on all three platforms, including ten seconds of multiprocess stress. Windows also exercises held files and a loaded DLL. The implementation at that commit uses filesystem-name allowlists for local Windows NTFS and macOS APFS/HFS+, alongside the original Linux allowlist.
+
+Small platform modules inspect storage locality while retaining the shared synchronous SQLite state machine. Windows opens writable directory handles with backup semantics for flushing. Its writer-to-reader transition first acquires the overlapping shared lock and then explicitly unlocks the exclusive portion, retaining the reader lease. Unix conversion keeps row/reference revalidation in case ownership was released. Native tests verify reader concurrency, pruning exclusion, delete-sharing failures and loaded-DLL recovery.
+
+macOS uses fstatfs locality flags and filesystem names. The pinned standard library uses F_FULLFSYNC for sync_all; SQLite enables fullfsync and checkpoint_fullfsync. No directory flush error is ignored. File sync and process-kill tests alone do not establish power-loss-safe directory publication.
+
 #link("https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex")[Microsoft shared/exclusive lock overlap and unlocking rules]
 
 #link("https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/fsync.2.html")[Apple fsync and F_FULLFSYNC guarantees]
-
-== Logical and physical schema
-The user-facing field names and borrowed values define identity only. The implementation extends one indexed SQLite entries table with kind, key digest, status, logical size, last access, optional blob payload, and optional object_key. A directory's object_key is committed in its Building row before construction; reads, deletion and recovery resolve the managed directory using that recorded reference rather than guessing from user fields. The initial object name is the recipe's BLAKE3-256 digest, but its physical reference is independently represented. Backend root identity is recorded separately in settings. SQLite schema version 2 migrates version 1 by setting directory references to the old key-based names without moving or scanning contents. Integration tests change a reference independently of the logical key and verify both reads and pruning follow metadata.
