@@ -59,6 +59,8 @@ jobs:
         run: cargo test --locked --doc
       - name: Storage and process recovery tests
         run: cargo test --locked --test store --test maintenance --test schema --test process --test platform
+      - name: Mock Reussir contracts
+        run: cargo test --locked --test live_contracts --test reussir_recipes
       - name: Native multiprocess stress
         if: github.event_name == 'workflow_dispatch' && inputs.stress
         env:

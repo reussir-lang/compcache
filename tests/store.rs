@@ -1,8 +1,7 @@
 mod common;
 use common::*;
 use compcache::{
-    Bypass, EntryKind, EntryStatus, Error, InMemoryCache, Key, MemoryEntry, NoExtraData,
-    QuickCache, StoreBuilder,
+    Bypass, EntryKind, EntryStatus, Error, Key, MemoryEntry, NoExtraData, QuickCache, StoreBuilder,
 };
 use std::sync::{
     Arc, Barrier,
@@ -141,7 +140,7 @@ fn quickcache_enforces_weight_and_is_shared_safely() {
             let memory = &memory;
             scope.spawn(move || {
                 for _ in 0..1000 {
-                    assert_eq!(memory.get(&key).unwrap().bytes.len(), 32);
+                    assert_eq!(memory.get(&key).unwrap().payload.len(), 32);
                 }
             });
         }

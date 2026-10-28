@@ -68,6 +68,8 @@ pub enum Error {
     },
     #[error("directory storage is disabled")]
     DirectoriesDisabled,
+    #[error("cached blob could not be materialized")]
+    Materialize(#[source] Box<Self>),
     #[error("cache producer failed")]
     Producer(#[source] ProducerError),
     #[error("producer failed and its partial output could not be cleaned up")]
