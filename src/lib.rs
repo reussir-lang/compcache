@@ -22,7 +22,7 @@ mod serde_key;
 
 pub use backoff::Backoff;
 pub use builder::StoreBuilder;
-pub use cache::Store;
+pub use cache::{Cached, Produced, Store};
 pub use config::{Config, DiskConfig, MemoryConfig};
 pub use defaults::StoreDefaults;
 pub use directory::{

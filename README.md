@@ -29,6 +29,83 @@ The builder can also accept initialized backends using `.in_memory(...)` and
 `QuickCache` indexes recipe keys with entropy-seeded
 [`rapidhash::fast::RandomState`](https://docs.rs/rapidhash/4.5.1/rapidhash/fast/type.RandomState.html).
 
+### Live payloads and byte defaults
+
+`QuickCache` and `Bypass` still use `Arc<[u8]>`: existing `get_blob` and
+`get_or_insert_blob` callers need no live-object adapter. `InMemoryCache` now has
+an associated `Payload`, a `materialize(bytes)` hook, and a `weight(payload)`
+hook. A client-owned strategy can use `Payload = Arc<Executable>` and embed
+`QuickCache<Arc<Executable>>`; see the runnable
+[live payload example](examples/live_payload.rs). `MemoryEntry::payload` replaces
+`MemoryEntry::bytes`. Custom strategy mutation methods now return retired entries.
+
+`get_or_insert_payload` accepts a producer returning `Produced { payload,
+serialized }`. The payload is already usable. `serialized` is `Ok(Some(bytes))`
+for persistence, `Ok(None)` for memory-only success, or `Err(error)` if
+serialization failed. Only serialized bytes enter SQLite; memory entries do not
+retain a second serialized representation. Cold production returns the original payload
+without deserializing it. Disk hits call `materialize` with the strategy's client
+context. Include program, shapes, donation, compiler/library identities and
+options in the persistent recipe; keep a process-local client identity in the
+memory strategy, not in that recipe. Use one strategy per client and cache root.
+Independent strategies can share disk bytes without sharing executable identity.
+
+The return value is `Cached { payload, cache_error }`. Serialization, persistence,
+or post-write maintenance failures preserve the successful payload and report
+`cache_error`. Lookup/lock errors are returned before production; a true producer
+failure is `Error::Producer`, whereas a disk materialization failure is wrapped in
+`Error::Materialize`. A caller may fall back after a cache lookup error, but should
+propagate a real compiler error. The byte-only convenience method preserves its
+original error-returning behavior; use the payload method when a byte result must
+survive a cache write failure too.
+
+`memory.enabled = false` disables admission and lookup, not strategy construction
+or materialization. Bypass and oversized entries also return caller-owned values.
+A successfully admitted memory-only value can be hit without any SQLite row.
+Memory-only values are process-local and can be lost to capacity eviction or
+store drop. Weights are application estimates of live memory use, independent of
+serialized size. A strategy that cannot construct its client from configuration
+should require `.in_memory(...)`, including when admission is disabled.
+
+Ownership uses ordinary `Arc` and `Drop`. Cache eviction releases cached ownership;
+external Arcs remain valid. Keep a client Arc inside each executable if native
+destruction requires the client. Cache residency is not object lifetime. Disk
+pruning removes this Store's memory reference as a policy; other Stores' resident
+snapshots are retained even after the row disappears. This is not global revocation.
+
+`force_evict_blob(key)` deletes the SQLite blob and removes this Store's memory
+reference. After invalid cached bytes, callers can force-evict and retry ordinary
+get-or-insert with a bounded retry count. It does not remove runtime directories,
+revoke external Arcs, or invalidate other processes' loaded snapshots. A fresh
+request may repopulate the key.
+
+Blob disk lookup/materialization, production, publication, final memory admission
+and force eviction use the existing exclusive filesystem key lease. This coalesces
+same-store requests (including memory-only success) and serializes disk production
+across processes. No additional initializer/coordinator is needed: adding a
+quick_cache placeholder ahead of that lease would introduce another lock order.
+Resident hits only clone ownership and retain the filesystem-lock-free hot path.
+The order for misses is key lease, then brief SQLite or memory-cache operations; no SQLite
+mutex is held while calling the producer or materializer. These callbacks must
+not reenter the same key or recursively acquire other keys in conflicting order.
+
+Custom strategies must return rejected, replaced and evicted entries from
+`insert`/`remove`/`clear`, without running payload destructors under internal locks.
+Store drops returned entries after releasing its key lease. `QuickCache<P>` uses
+quick_cache's lifecycle return API to collect **all** retired entries: the
+upstream default lifecycle only buffers two, and its ordinary `clear` drops values
+under shard locks. The wrapper clears a snapshot using removals instead. A
+concurrent insertion may survive a clear; direct callers drop the returned values
+after releasing any of their own locks.
+
+The [PJRT-shaped fixtures](tests/live_contracts.rs) and
+[Polyffi/Rene recipe fixtures](tests/reussir_recipes.rs) are deterministic mock
+contracts. They test client ownership, compile/serialize/deserialize counts,
+cache-error fallback, recipe changes, bounded repair, eviction races, relative
+runtime manifests and held linker leases. Existing process crash/concurrency
+tests cover runtime publication and partial-output exclusion. These are not real
+Reussir, LLVM, GPU, PJRT-plugin or linker integration tests.
+
 Applications can supply their name, fallback settings and optional environment
 overrides through `StoreDefaults`:
 

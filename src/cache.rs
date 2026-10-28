@@ -13,12 +13,40 @@ use std::{
 };
 use tracing::{debug, info};
 
+/// Cold result; serialization may fail independently of successful production.
+///
+/// ```no_run
+/// use compcache::{Produced, Store, StoreBuilder, Key};
+/// use std::sync::Arc;
+/// let store: Store = StoreBuilder::new().path("/tmp/compiler-cache").open()?;
+/// let key = Key::from_parts("bytecode-v1", b"complete-recipe");
+/// let cached = store.get_or_insert_payload(key, || {
+///     let payload: Arc<[u8]> = vec![1, 2, 3].into();
+///     Ok(Produced { payload, serialized: Ok(None) }) // memory-only success
+/// })?;
+/// assert_eq!(&*cached.payload, &[1, 2, 3]);
+/// # Ok::<(), compcache::Error>(())
+/// ```
+pub struct Produced<P> {
+    /// Already usable; the store never serializes then materializes a cold value.
+    pub payload: P,
+    /// Optional persistence bytes, or a serialization failure independent of production.
+    pub serialized: Result<Option<Vec<u8>>>,
+}
+
+/// Usable result, with an optional serialization/persistence/maintenance error.
+#[derive(Debug)]
+pub struct Cached<P> {
+    pub payload: P,
+    pub cache_error: Option<Error>,
+}
+
 /// Share a handle with `Arc`; independent processes may open the same root.
 /// Every process must use this protocol and the same directory backend layout.
 pub struct Store<I = QuickCache, D = ManagedDirectory> {
     pub(crate) metadata: Metadata,
     pub(crate) locks: KeyLocks,
-    pub(crate) memory: Option<I>,
+    pub(crate) memory: I,
     pub(crate) directories: Option<D>,
     pub(crate) config: Config,
     pub(crate) root: PathBuf,
@@ -27,7 +55,7 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
     pub(crate) fn open_components(
         root: &Path,
         config: Config,
-        memory: Option<I>,
+        memory: I,
         directories: Option<D>,
     ) -> Result<Self> {
         config.validate()?;
@@ -77,63 +105,174 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
     pub fn status(&self, kind: EntryKind, key: &Key) -> Result<Option<EntryStatus>> {
         self.metadata.status(kind as i64, key)
     }
-    /// Read a blob as shared immutable bytes.
+    /// Read and materialize a blob, or return this strategy's resident payload.
+    /// Memory residency is independent of disk residency: a missing SQLite row
+    /// does not invalidate a live snapshot.
     ///
     /// # Errors
-    ///
-    /// Returns an error if the key lease or SQLite lookup/access-time update fails.
-    pub fn get_blob(&self, key: &Key) -> Result<Option<Arc<[u8]>>> {
-        let now = now_secs()?;
-        if let Some(entry) = self.memory.as_ref().and_then(|m| m.get(key)) {
-            if entry.touched() >= now || self.metadata.touch(BLOB, key, now)? {
-                entry.set_touched(now);
-                return Ok(Some(entry.bytes.clone()));
-            }
-            if let Some(memory) = &self.memory {
-                memory.remove(key);
-            }
+    /// Returns locking, metadata, or materialization errors.
+    pub fn get_blob(&self, key: &Key) -> Result<Option<I::Payload>> {
+        if let Some(payload) = self.read_memory(key, now_secs()?)? {
+            return Ok(Some(payload));
         }
-        let _lease = self.locks.shared(BLOB, key)?;
-        self.read_blob(key, now)
+        let mut retired = Vec::new();
+        let lease = self.locks.exclusive(BLOB, key)?;
+        let result = self.read_blob(key, now_secs()?, &mut retired);
+        drop(lease);
+        drop(retired);
+        result
     }
-    fn read_blob(&self, key: &Key, now: i64) -> Result<Option<Arc<[u8]>>> {
+    // A memory hit only clones ownership: it cannot re-admit after force eviction.
+    // Keep the ordinary byte hot path free of filesystem locking.
+    fn read_memory(&self, key: &Key, now: i64) -> Result<Option<I::Payload>> {
+        if self.config.memory.enabled
+            && let Some(entry) = self.memory.get(key)
+        {
+            if entry.persisted && entry.touched() < now {
+                self.metadata.touch(BLOB, key, now)?;
+                entry.set_touched(now);
+            }
+            return Ok(Some(entry.payload.clone()));
+        }
+        Ok(None)
+    }
+    fn read_blob(
+        &self,
+        key: &Key,
+        now: i64,
+        retired: &mut Vec<Arc<MemoryEntry<I::Payload>>>,
+    ) -> Result<Option<I::Payload>> {
+        if let Some(payload) = self.read_memory(key, now)? {
+            return Ok(Some(payload));
+        }
         let Some(bytes) = self.metadata.blob(key, now)? else {
             return Ok(None);
         };
-        let bytes: Arc<[u8]> = bytes.into();
-        if let Some(memory) = &self.memory {
-            memory.insert(*key, Arc::new(MemoryEntry::new(bytes.clone(), now)));
-        }
-        Ok(Some(bytes))
+        let payload = self
+            .memory
+            .materialize(bytes.into())
+            .map_err(|error| Error::Materialize(Box::new(error)))?;
+        self.admit(*key, &payload, now, true, retired);
+        Ok(Some(payload))
     }
-    /// At most one producer runs for a key at a time, including across processes.
-    /// A failed or crashed producer can be retried; recipes must be deterministic.
+    fn admit(
+        &self,
+        key: Key,
+        payload: &I::Payload,
+        now: i64,
+        persisted: bool,
+        retired: &mut Vec<Arc<MemoryEntry<I::Payload>>>,
+    ) {
+        if self.config.memory.enabled {
+            let weight = self.memory.weight(payload);
+            let mut entry = MemoryEntry::with_weight(payload.clone(), now, weight);
+            entry.persisted = persisted;
+            retired.extend(self.memory.insert(key, Arc::new(entry)));
+        }
+    }
+    /// Produce a live value once under the existing per-key filesystem lease.
+    /// Cold production returns the original payload; only optional bytes enter
+    /// SQLite. Serialization/persistence failure returns a usable payload and a
+    /// cache error. Successful memory-only entries can be hit without a disk row.
     ///
     /// # Errors
+    /// Returns lookup/locking/materialization errors before production, or
+    /// `Error::Producer` for a true producer failure. No payload exists in those cases.
+    pub fn get_or_insert_payload(
+        &self,
+        key: Key,
+        produce: impl FnOnce() -> std::result::Result<Produced<I::Payload>, crate::ProducerError>,
+    ) -> Result<Cached<I::Payload>> {
+        self.get_or_insert_inner(key, || produce().map_err(Error::Producer))
+    }
+    fn get_or_insert_inner(
+        &self,
+        key: Key,
+        produce: impl FnOnce() -> Result<Produced<I::Payload>>,
+    ) -> Result<Cached<I::Payload>> {
+        if let Some(payload) = self.read_memory(&key, now_secs()?)? {
+            return Ok(Cached {
+                payload,
+                cache_error: None,
+            });
+        }
+        let mut retired = Vec::new();
+        let lease = self.locks.exclusive(BLOB, &key)?;
+        let mut persisted = false;
+        let result: Result<_> = (|| {
+            let now = now_secs()?;
+            if let Some(payload) = self.read_blob(&key, now, &mut retired)? {
+                return Ok(Cached {
+                    payload,
+                    cache_error: None,
+                });
+            }
+            debug!(%key, "producing blob payload");
+            let Produced {
+                payload,
+                serialized,
+            } = produce()?;
+            let has_bytes = matches!(&serialized, Ok(Some(_)));
+            let cache_error = match serialized {
+                Ok(Some(bytes)) => self.metadata.insert_blob(&key, &bytes, now).err(),
+                Ok(None) => None,
+                Err(error) => Some(error),
+            };
+            persisted = cache_error.is_none() && has_bytes;
+            self.admit(key, &payload, now, persisted, &mut retired);
+            Ok(Cached {
+                payload,
+                cache_error,
+            })
+        })();
+        drop(lease);
+        drop(retired);
+        let mut cached = result?;
+        if persisted {
+            cached.cache_error = self.after_write().err();
+        }
+        Ok(cached)
+    }
+    /// Byte-only convenience API retaining its original error behavior.
+    /// Use `get_or_insert_payload` to preserve a result on persistence failure.
     ///
-    /// Returns producer, locking, SQLite or size errors. A maintenance error means the payload was stored but subsequent pruning failed.
+    /// # Errors
+    /// Returns producer, lookup, persistence or maintenance errors.
     pub fn get_or_insert_blob(
         &self,
         key: Key,
         produce: impl FnOnce() -> Result<Vec<u8>>,
-    ) -> Result<Arc<[u8]>> {
-        if let Some(bytes) = self.get_blob(&key)? {
-            return Ok(bytes);
+    ) -> Result<Arc<[u8]>>
+    where
+        I: InMemoryCache<Payload = Arc<[u8]>>,
+    {
+        let cached = self.get_or_insert_inner(key, || {
+            let bytes = produce()?;
+            Ok(Produced {
+                payload: Arc::from(bytes.clone()),
+                serialized: Ok(Some(bytes)),
+            })
+        })?;
+        if let Some(error) = cached.cache_error {
+            return Err(error);
         }
-        let lease = self.locks.exclusive(BLOB, &key)?;
-        if let Some(bytes) = self.read_blob(&key, now_secs()?)? {
-            return Ok(bytes);
-        }
-        debug!(%key, "producing SQLite blob");
-        let bytes: Arc<[u8]> = produce()?.into();
-        let now = now_secs()?;
-        self.metadata.insert_blob(&key, &bytes, now)?;
-        if let Some(memory) = &self.memory {
-            memory.insert(key, Arc::new(MemoryEntry::new(bytes.clone(), now)));
-        }
+        Ok(cached.payload)
+    }
+    /// Remove the persisted blob and this Store's memory ownership. Outstanding
+    /// payloads and other stores' snapshots remain valid. The key lease covers
+    /// both publication and final admission, so older in-flight work cannot
+    /// re-admit after this returns. A subsequent request can repopulate the key.
+    /// Runtime directories and their reader leases are unaffected.
+    ///
+    /// # Errors
+    /// Returns locking or SQLite errors. On error, memory ownership is unchanged.
+    pub fn force_evict_blob(&self, key: &Key) -> Result<()> {
+        let lease = self.locks.exclusive(BLOB, key)?;
+        self.metadata.forget_blob(key)?;
+        let retired = self.memory.remove(key);
         drop(lease);
-        self.after_write()?;
-        Ok(bytes)
+        drop(retired);
+        Ok(())
     }
     pub(crate) fn after_write(&self) -> Result<()> {
         if self.config.disk.prune_on_write {

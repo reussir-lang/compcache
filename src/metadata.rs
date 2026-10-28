@@ -156,6 +156,13 @@ impl Metadata {
             .execute([key.0.as_slice()])?;
         Ok(())
     }
+    pub(crate) fn forget_blob(&self, key: &Key) -> Result<()> {
+        self.connection
+            .lock()
+            .prepare_cached("DELETE FROM entries WHERE kind=0 AND key=?1")?
+            .execute([key.0.as_slice()])?;
+        Ok(())
+    }
     pub(crate) fn prune_blob(&self, key: &Key, deadline: i64) -> Result<bool> {
         Ok(self
             .connection

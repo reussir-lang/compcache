@@ -1,6 +1,6 @@
 use compcache::{
-    ArtifactWriter, Bypass, Config, InMemoryCache, Key, ManagedDirectory, MemoryEntry, NoExtraData,
-    QuickCache, SchemaKey, Store, StoreBuilder,
+    ArtifactWriter, Bypass, Config, Key, ManagedDirectory, MemoryEntry, NoExtraData, QuickCache,
+    SchemaKey, Store, StoreBuilder,
 };
 use criterion::{
     BatchSize, BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main,

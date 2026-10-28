@@ -143,13 +143,10 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> StoreBuilder<I, D> {
             reason: "a cache directory is required",
         })?;
         crate::filesystem::make_directory(&root)?;
-        let memory = if self.config.memory.enabled {
-            Some(match self.memory {
-                Some(memory) => memory,
-                None => I::from_config(&self.config.memory)?,
-            })
-        } else {
-            None
+        // Disabling admission must not discard caller context/materialization hooks.
+        let memory = match self.memory {
+            Some(memory) => memory,
+            None => I::from_config(&self.config.memory)?,
         };
         let extra = if self.config.disk.directories {
             match self.extra {

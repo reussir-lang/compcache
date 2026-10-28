@@ -31,7 +31,7 @@ fn next_random(seed: &mut u64) -> u64 {
     *seed ^= *seed << 17;
     *seed
 }
-fn exercise<I: InMemoryCache, D: ExtraOnDiskData>(
+fn exercise<I: InMemoryCache<Payload = std::sync::Arc<[u8]>>, D: ExtraOnDiskData>(
     store: &Store<I, D>,
     id: u64,
     seconds: u64,

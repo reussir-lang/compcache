@@ -54,15 +54,17 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
             bytes = report.bytes_before,
             "cache pruning started"
         );
+        let mut retired = Vec::new();
         for row in self.metadata.candidates(deadline)? {
             let Some(_lock) = self.locks.try_exclusive(row.kind, &row.key)? else {
                 report.skipped_busy += 1;
                 continue;
             };
-            if self.prune_key(row.kind, &row.key, deadline)? {
+            if self.prune_key(row.kind, &row.key, deadline, &mut retired)? {
                 report.removed += 1;
             }
         }
+        drop(retired);
         report.bytes_after = self.accounted_size()?;
         info!(
             removed = report.removed,
@@ -72,12 +74,16 @@ impl<I: InMemoryCache, D: ExtraOnDiskData> Store<I, D> {
         );
         Ok(report)
     }
-    fn prune_key(&self, kind: i64, key: &Key, deadline: i64) -> Result<bool> {
+    fn prune_key(
+        &self,
+        kind: i64,
+        key: &Key,
+        deadline: i64,
+        retired: &mut Vec<std::sync::Arc<crate::MemoryEntry<I::Payload>>>,
+    ) -> Result<bool> {
         if kind == BLOB {
             if self.metadata.prune_blob(key, deadline)? {
-                if let Some(memory) = &self.memory {
-                    memory.remove(key);
-                }
+                retired.extend(self.memory.remove(key));
                 return Ok(true);
             }
         } else if self.metadata.mark_pruning(key, Some(deadline))? {
