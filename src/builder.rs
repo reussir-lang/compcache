@@ -256,6 +256,7 @@ mod tests {
                     "--nocapture",
                 ])
                 .env("DEFAULTS_TEST_MODE", mode)
+                .env("PATH", "")
                 .env("HOME", root.path().join("home"))
                 .env("XDG_CACHE_HOME", root.path().join("xdg-cache"))
                 .env("XDG_CONFIG_HOME", root.path().join("xdg-config"))
@@ -290,7 +291,8 @@ mod tests {
                 "partial" | "invalid" | "explicit" => {
                     fs::create_dir_all(&config).unwrap();
                     let contents = if mode == "partial" {
-                        "{ memory.enabled = false, disk.io_backoff.jitter = false }"
+                        fs::write(config.join("backoff.ncl"), "{ jitter = false }").unwrap();
+                        "{ memory.enabled = false, disk.io_backoff = import \"backoff.ncl\" }"
                     } else {
                         "invalid Nickel syntax {{"
                     };
@@ -300,9 +302,7 @@ mod tests {
                     // A file used as a directory must not be treated as a missing config.
                     fs::write(&config, "not a directory").unwrap();
                 }
-                _ => {
-                    command.env("PATH", ""); // No Nickel needed for a missing file.
-                }
+                _ => {}
             }
             let output = command
                 .env("EXPECTED_CACHE", &cache)

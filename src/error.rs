@@ -1,4 +1,4 @@
-use std::{io, path::PathBuf, process::ExitStatus};
+use std::{io, path::PathBuf};
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub type ProducerError = Box<dyn std::error::Error + Send + Sync + 'static>;
@@ -22,11 +22,8 @@ pub enum Error {
     },
     #[error("invalid quick_cache options")]
     MemoryOptions(#[source] ProducerError),
-    #[error("Nickel evaluation failed ({status}): {diagnostic}")]
-    Nickel {
-        status: ExitStatus,
-        diagnostic: String,
-    },
+    #[error("Nickel evaluation failed: {diagnostic}")]
+    Nickel { diagnostic: String },
     #[error("invalid exported Nickel configuration")]
     ConfigDecode(#[from] serde_json::Error),
     #[error("unsupported or remote filesystem {kind:#x} at {path}")]
@@ -87,6 +84,17 @@ pub enum Error {
 impl Error {
     pub fn producer(error: impl std::error::Error + Send + Sync + 'static) -> Self {
         Self::Producer(Box::new(error))
+    }
+}
+
+impl From<nickel_lang::Error> for Error {
+    fn from(error: nickel_lang::Error) -> Self {
+        let mut output = Vec::new();
+        let diagnostic = match error.format(&mut output, nickel_lang::ErrorFormat::Text) {
+            Ok(()) => String::from_utf8_lossy(&output).trim_end().to_owned(),
+            Err(format_error) => format!("{error:?} (diagnostics unavailable: {format_error})"),
+        };
+        Self::Nickel { diagnostic }
     }
 }
 

@@ -17,7 +17,7 @@
         ];
       in {
         devShells.default = pkgs.mkShell {
-          packages = [ rust pkgs.sqlite pkgs.nickel pkgs.typst ];
+          packages = [ rust pkgs.sqlite pkgs.typst ];
         };
         # The checker has a separate shell: ordinary Rust builds need no .NET.
         devShells.proof = pkgs.mkShell {

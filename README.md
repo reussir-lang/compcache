@@ -146,8 +146,8 @@ If a platform directory cannot be resolved, construction returns `Error::Config`
 
 On `open()`, the builder loads `config.ncl` from the selected config directory.
 A missing file and fields omitted from a file use `StoreDefaults::config()`;
-omitted nested fields also retain the application's defaults. Nickel is needed
-only when a file exists. Invalid files and other I/O errors are returned.
+omitted nested fields also retain the application's defaults. Existing files are
+evaluated in process; invalid files and other I/O errors are returned.
 The builder creates the cache directory when opening the store; it does not
 create the config directory or write a config file. Subsequent `.path(...)` and
 `.config(...)` calls take precedence, with `.config(...)` disabling file loading.
@@ -266,8 +266,8 @@ rounding; in-progress producer output is recorded at publication. Deleting a
 SQLite blob frees reusable pages without necessarily shrinking the DB file.
 `checkpoint()` requests WAL truncation and returns whether it completed.
 
-Nickel is evaluated once on configuration load using the `nickel` CLI. The
-[default configuration](config/default.ncl) exposes all quick_cache construction
+Nickel is evaluated in process on configuration load using `nickel-lang`. No
+external executable is required. The [default configuration](config/default.ncl) exposes all quick_cache construction
 options (shards, estimated items, byte weight, hot and ghost allocation), maximum
 entry weight, layer selection, SQLite page cache/busy timeout/checkpoint settings,
 prune trigger/age, and bounded filesystem backoff. `quick_cache` exposes hit/miss
@@ -292,9 +292,9 @@ and runs unit, key, documentation, storage, schema and subprocess crash-recovery
 tests. Windows also exercises held files and loaded DLLs. Pedantic and nursery
 Clippy checks run with warnings denied on every platform; formatting runs on Linux.
 
-Routine CI excludes benchmarks, six-process stress, the P checker, and Nickel
-configuration evaluation. Run those locally with the commands above. Path and
-default-value tests run without Nickel. Documentation-only changes skip CI,
+Routine CI includes configuration evaluation with an empty `PATH`. Benchmarks,
+six-process stress and the P checker can be run locally with the commands above.
+Documentation-only changes skip CI,
 superseded runs are cancelled, and each job has a 15-minute limit.
 Manual workflow dispatch with `stress=true` adds a ten-second six-process stress
 run on every native runner.
@@ -303,7 +303,7 @@ runs storage/recovery and ten-second stress tests with cache roots on that volum
 ReFS fixture setup is outside routine CI.
 
 Nix uses the same pinned nixpkgs/fenix inputs as `../reussir`, with stable Rust
-1.98.0, Nickel, Typst and SQLite tooling. The proof shell adds only .NET 8;
+1.98.0, Typst and SQLite tooling. The proof shell adds only .NET 8;
 P 3.1.0 is pinned in the project-local tool manifest. No LLVM/MLIR, Node, JVM,
 async runtime or compiler-framework packages are required.
 

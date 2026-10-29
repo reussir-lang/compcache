@@ -2,7 +2,7 @@
 name = "compcache"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.90"
 description = "Synchronous local compiler cache with SQLite metadata and leased runtime directories"
 
 [dependencies]
@@ -10,6 +10,7 @@ blake3 = "1.8"
 dirs = "6"
 fs4 = { version = "0.13", features = ["sync"] }
 libc = "0.2"
+nickel-lang = "2.2"
 parking_lot = "0.12"
 quick_cache = { version = "0.6", default-features = false, features = ["parking_lot", "stats"] }
 rapidhash = "4.5"
