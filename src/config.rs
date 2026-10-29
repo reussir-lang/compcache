@@ -1,6 +1,7 @@
 use crate::{Error, Result, error::IoContext};
+use nickel_lang::Context;
 use serde::{Deserialize, Serialize};
-use std::{path::Path, process::Command};
+use std::path::Path;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -61,12 +62,11 @@ impl Default for DiskConfig {
     }
 }
 impl Config {
-    /// Evaluate Nickel once during startup; the hot path never starts a process.
-    /// Requires the `nickel` executable from the development shell or deployment.
+    /// Evaluate Nickel in process when loading configuration.
     ///
     /// # Errors
     ///
-    /// Returns an error if Nickel cannot run, evaluation or decoding fails, or a configuration value is invalid.
+    /// Returns an error if reading, evaluation or decoding fails, or a configuration value is invalid.
     pub fn from_nickel(path: impl AsRef<Path>) -> Result<Self> {
         Self::from_nickel_with_defaults(path, Self::default())
     }
@@ -75,18 +75,13 @@ impl Config {
         defaults: Self,
     ) -> Result<Self> {
         let path = path.as_ref();
-        let output = Command::new("nickel")
-            .args(["export", "--format", "json"])
-            .arg(path)
-            .output()
-            .at("evaluate Nickel configuration", path)?;
-        if !output.status.success() {
-            return Err(Error::Nickel {
-                status: output.status,
-                diagnostic: String::from_utf8_lossy(&output.stderr).into_owned(),
-            });
+        let source = std::fs::read_to_string(path).at("read Nickel configuration", path)?;
+        let mut context = Context::new().with_source_name(path.display().to_string());
+        if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
+            context = context.with_added_import_paths(vec![parent.as_os_str().to_owned()]);
         }
-        let mut value = serde_json::from_slice(&output.stdout)?;
+        let expression = context.eval_deep_for_export(&source)?;
+        let mut value = serde_json::from_str(&context.expr_to_json(&expression)?)?;
         fill_defaults(&mut value, serde_json::to_value(defaults)?);
         let config: Self = serde_json::from_value(value)?;
         config.validate()?;

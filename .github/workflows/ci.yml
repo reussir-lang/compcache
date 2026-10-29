@@ -51,8 +51,8 @@ jobs:
         run: cargo check --locked --all-targets
       - name: Clippy
         run: cargo clippy --locked --all-targets -- -D warnings
-      - name: Unit tests without the external Nickel CLI
-        run: cargo test --locked --lib -- --skip builder::tests::application_defaults_config_loading
+      - name: Unit tests
+        run: cargo test --locked --lib
       - name: Key compatibility tests
         run: cargo test --locked --test key --test serde_key
       - name: Documentation tests
